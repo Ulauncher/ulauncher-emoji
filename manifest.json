@@ -1,32 +1,22 @@
 {
     "manifest_version": "1",
     "api_version": "1",
-    "name": "Demo",
-    "description": "Demo extension",
+    "name": "Emoji",
+    "description": "Emoji extension",
     "developer_name": "Aleksandr Gornostal",
     "icon": "images/icon.png",
-    "options": {
-        "query_debounce": 0.05
-    },
     "preferences": [
         {
-            "id": "demo_kw",
+            "id": "emoji_kw",
             "type": "keyword",
-            "name": "Demo",
-            "default_value": "dm"
+            "name": "Emoji",
+            "default_value": "em"
         },
         {
-            "id": "item_name",
+            "id": "skin_tone",
             "type": "input",
-            "name": "Item name",
-            "description": "Name for each item",
-            "default_value": "Item"
-        },
-        {
-            "id": "memo",
-            "type": "text",
-            "name": "Memo",
-            "description": "Write something here",
+            "name": "Skin Tone",
+            "description": "Allowed values: dark, light, medium, medium-dark, medium-light, or empty",
             "default_value": ""
         }
     ]

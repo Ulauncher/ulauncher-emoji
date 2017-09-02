@@ -1,51 +1,70 @@
-import json
+import os
 import logging
-from time import sleep
+import sqlite3
 from ulauncher.api.client.Extension import Extension
 from ulauncher.api.client.EventListener import EventListener
-from ulauncher.api.shared.event import KeywordQueryEvent, ItemEnterEvent
+from ulauncher.api.shared.event import KeywordQueryEvent
 from ulauncher.api.shared.item.ExtensionResultItem import ExtensionResultItem
 from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
-from ulauncher.api.shared.action.ExtensionCustomAction import ExtensionCustomAction
-from ulauncher.api.shared.action.HideWindowAction import HideWindowAction
 from ulauncher.api.shared.action.CopyToClipboardAction import CopyToClipboardAction
+from ulauncher.api.shared.action.DoNothingAction import DoNothingAction
+
 
 logger = logging.getLogger(__name__)
+extension_icon = 'images/icon.png'
+allowed_skin_tones = ["", "dark", "light", "medium", "medium-dark", "medium-light"]
+db_path = os.path.join(os.path.dirname(__file__), 'emoji.sqlite')
+conn = sqlite3.connect(db_path, check_same_thread=False)
+conn.row_factory = sqlite3.Row
 
 
-class DemoExtension(Extension):
+class EmojiExtension(Extension):
 
     def __init__(self):
-        super(DemoExtension, self).__init__()
+        super(EmojiExtension, self).__init__()
         self.subscribe(KeywordQueryEvent, KeywordQueryEventListener())
-        self.subscribe(ItemEnterEvent, ItemEnterEventListener())
 
 
 class KeywordQueryEventListener(EventListener):
 
     def on_event(self, event, extension):
+        query = r"""SELECT
+            em.name, em.code, em.icon, em.keywords,
+            skt.code AS skt_code, skt.icon AS skt_icon
+            FROM emoji AS em
+            LEFT JOIN skin_tone AS skt ON skt.name = em.name AND tone = ?
+            WHERE name_search LIKE ?
+            LIMIT 8"""
+
+        search_term = ''.join(['%', event.get_argument().replace('%', ''), '%']) if event.get_argument() else None
+        if not search_term:
+            return RenderResultListAction([
+                ExtensionResultItem(icon=extension_icon,
+                                    name='Type in emoji name...',
+                                    on_enter=DoNothingAction())
+            ])
+
+        skin_tone = extension.preferences['skin_tone']
+        if skin_tone not in allowed_skin_tones:
+            logger.warning('Unknown skin tone "%s"' % skin_tone)
+            skin_tone = ''
+
         items = []
-        logger.info('preferences %s' % json.dumps(extension.preferences))
-        for i in range(5):
-            item_name = extension.preferences['item_name']
-            data = {'new_name': '%s %s was clicked' % (item_name, i)}
-            items.append(ExtensionResultItem(icon='images/icon.png',
-                                             name='%s %s' % (item_name, i),
-                                             description=unicode(u'\U0001F44D'),
-                                             on_enter=ExtensionCustomAction(data, keep_app_open=True)))
+        for row in conn.execute(query, [skin_tone, search_term]):
+            if row['skt_code']:
+                icon = row['skt_icon']
+                code = row['skt_code']
+            else:
+                icon = row['icon']
+                code = row['code']
+
+            name = ('%s %s' % (row['name'].capitalize(), code)).encode('utf8')
+            items.append(ExtensionResultItem(icon=icon,
+                                             name=name,
+                                             on_enter=CopyToClipboardAction(code)))
 
         return RenderResultListAction(items)
 
 
-class ItemEnterEventListener(EventListener):
-
-    def on_event(self, event, extension):
-        data = event.get_data()
-        emoji = u'\U0000270A'
-        return RenderResultListAction([ExtensionResultItem(icon='images/icon.png',
-                                                           name=data['new_name'],
-                                                           on_enter=CopyToClipboardAction(emoji))])
-
-
 if __name__ == '__main__':
-    DemoExtension().run()
+    EmojiExtension().run()
