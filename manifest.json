@@ -1,5 +1,5 @@
 {
-    "manifest_version": "1",
+    "manifest_version": "2",
     "api_version": "1",
     "name": "Emoji",
     "description": "Emoji extension",
@@ -14,10 +14,18 @@
         },
         {
             "id": "skin_tone",
-            "type": "input",
+            "type": "select",
             "name": "Skin Tone",
-            "description": "Allowed values: dark, light, medium, medium-dark, medium-light, or empty",
+            "options": ["", "dark", "light", "medium", "medium-dark", "medium-light"],
+            "description": "Select empty value for default tone",
             "default_value": ""
+        },
+        {
+            "id": "list_item_size",
+            "type": "select",
+            "name": "List item size",
+            "options": [{"value": "large", "text": "Large"}, {"value": "small", "text": "Small"}],
+            "default_value": "large"
         }
     ]
 }
