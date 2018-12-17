@@ -46,7 +46,7 @@ class KeywordQueryEventListener(EventListener):
 
         skin_tone = extension.preferences['skin_tone']
         if skin_tone not in allowed_skin_tones:
-            logger.warning('Unknown skin tone "%s"' % skin_tone)
+            logger.warning('Unknown skin tone "%s"', skin_tone)
             skin_tone = ''
 
         items = []
@@ -58,7 +58,7 @@ class KeywordQueryEventListener(EventListener):
                 icon = row['icon']
                 code = row['code']
 
-            name = ('%s %s' % (row['name'].capitalize(), code)).encode('utf8')
+            name = '%s %s' % (row['name'].capitalize(), code)
             items.append(ExtensionResultItem(icon=icon,
                                              name=name,
                                              on_enter=CopyToClipboardAction(code)))
