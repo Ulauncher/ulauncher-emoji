@@ -14,10 +14,18 @@
         },
         {
             "id": "skin_tone",
-            "type": "input",
+            "type": "select",
             "name": "Skin Tone",
-            "description": "Allowed values: dark, light, medium, medium-dark, medium-light, or empty",
-            "default_value": ""
+            "description": "Choose the skin tone for your emojis",
+            "default_value": "default",
+            "options": [
+                "default",
+                "light",
+                "medium-light",
+                "medium",
+                "medium-dark",
+                "dark"
+            ]
         }
     ]
 }

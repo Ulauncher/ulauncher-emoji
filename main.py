@@ -12,7 +12,6 @@ from ulauncher.api.shared.action.DoNothingAction import DoNothingAction
 
 logger = logging.getLogger(__name__)
 extension_icon = 'images/icon.png'
-allowed_skin_tones = ["", "dark", "light", "medium", "medium-dark", "medium-light"]
 db_path = os.path.join(os.path.dirname(__file__), 'emoji.sqlite')
 conn = sqlite3.connect(db_path, check_same_thread=False)
 conn.row_factory = sqlite3.Row
@@ -23,6 +22,7 @@ class EmojiExtension(Extension):
     def __init__(self):
         super(EmojiExtension, self).__init__()
         self.subscribe(KeywordQueryEvent, KeywordQueryEventListener())
+        self.allowed_skin_tones = ["", "dark", "light", "medium", "medium-dark", "medium-light"]
 
 
 class KeywordQueryEventListener(EventListener):
@@ -45,7 +45,7 @@ class KeywordQueryEventListener(EventListener):
             ])
 
         skin_tone = extension.preferences['skin_tone']
-        if skin_tone not in allowed_skin_tones:
+        if skin_tone not in extension.allowed_skin_tones:
             logger.warning('Unknown skin tone "%s"' % skin_tone)
             skin_tone = ''
 
