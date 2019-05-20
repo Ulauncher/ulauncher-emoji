@@ -58,9 +58,8 @@ class KeywordQueryEventListener(EventListener):
                 icon = row['icon']
                 code = row['code']
 
-            name = '%s %s' % (row['name'].capitalize(), code)
             items.append(ExtensionResultItem(icon=icon,
-                                             name=name,
+                                             name=row['name'].capitalize(),
                                              on_enter=CopyToClipboardAction(code)))
 
         return RenderResultListAction(items)
