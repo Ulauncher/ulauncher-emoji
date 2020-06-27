@@ -1,6 +1,6 @@
 {
     "required_api_version": "^2.0.0",
-    "name": "Emoji",
+    "name": "System Emoji",
     "description": "Emoji extension",
     "developer_name": "Aleksandr Gornostal",
     "icon": "images/icon.png",
@@ -10,6 +10,19 @@
             "type": "keyword",
             "name": "Emoji",
             "default_value": "em"
+        },
+        {
+            "id": "emoji_style",
+            "type": "select",
+            "name": "Emoji Style",
+            "description": "Choose the style of emojis you prefer",
+            "default_value": "apple",
+            "options": [
+                "apple",
+                "twemoji",
+                "noto-emoji",
+                "blobmoji"
+            ]
         },
         {
             "id": "skin_tone",
