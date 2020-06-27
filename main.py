@@ -52,13 +52,16 @@ class EmojiExtension(Extension):
         super(EmojiExtension, self).__init__()
         self.subscribe(KeywordQueryEvent, KeywordQueryEventListener())
         self.allowed_skin_tones = ["", "dark", "light", "medium", "medium-dark", "medium-light"]
+        self.allowed_icon_style = ['apple', 'twemoji', 'noto', 'blobmoji']
 
 class KeywordQueryEventListener(EventListener):
 
     def on_event(self, event, extension):
         query = r"""SELECT
-            em.name, em.code, em.icon, em.keywords,
-            skt.code AS skt_code, skt.icon AS skt_icon
+            em.name, em.code, em.keywords,
+            em.icon_apple, em.icon_twemoji, em.icon_noto, em.icon_blobmoji,
+            skt.icon_apple AS skt_icon_apple, skt.icon_twemoji AS skt_icon_twemoji, 
+            skt.icon_noto AS skt_icon_noto, skt.icon_blobmoji AS skt_icon_blobmoji 
             FROM emoji AS em
             LEFT JOIN skin_tone AS skt ON skt.name = em.name AND tone = ?
             WHERE name_search LIKE ?
@@ -78,12 +81,13 @@ class KeywordQueryEventListener(EventListener):
             skin_tone = ''
         
         items = []
+        icon_style = extension.preferences['emoji_style']
         for row in conn.execute(query, [skin_tone, search_term]):
             if row['skt_code']:
-                icon = row['skt_icon']
+                icon = row['skt_icon_%s' % icon_style]
                 code = row['skt_code']
             else:
-                icon = row['icon']
+                icon = row['icon_%s' % icon_style]
                 code = row['code']
             
             items.append(ExtensionResultItem(icon=icon,

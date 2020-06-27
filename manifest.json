@@ -20,7 +20,7 @@
             "options": [
                 "apple",
                 "twemoji",
-                "noto-emoji",
+                "noto",
                 "blobmoji"
             ]
         },
