@@ -2,6 +2,7 @@
 import os
 import re
 import scrapy
+import requests
 import sqlite3
 import shutil
 import base64
@@ -33,7 +34,7 @@ def setup_db():
         CREATE TABLE skin_tone (name VARCHAR, code VARCHAR, tone VARCHAR,
                                 icon_apple VARCHAR, icon_twemoji VARCHAR,
                                 icon_noto VARCHAR, icon_blobmoji VARCHAR);
-        CREATE INDEX name_idx ON skin_tone (name);'''
+        CREATE INDEX name_idx ON skin_tone (name);''')
     conn.row_factory = sqlite3.Row
 
     return conn
@@ -43,8 +44,32 @@ def str_to_unicode_emoji(s):
     """
     Converts 'U+FE0E' to u'\U0000FE0E'
     """
-    return re.sub(r'U\+([0-9a-fA-F]+)', lambda m: unichr(int(m.group(1), 16)), s).replace(' ', '')
+    return re.sub(r'U\+([0-9a-fA-F]+)', lambda m: chr(int(m.group(1), 16)), s).replace(' ', '')
 
+
+# TODO: depending on the style, download the 
+#       emoji from github based on the emoji code
+# - twemoji: 
+#   - root: https://github.com/twitter/twemoji/raw/master/assets/72x72/
+#   - pattern: (CODE, LOWERCASE, DASH(-) SEPERATED).png
+# - noto: 
+#   - root: https://github.com/googlefonts/noto-emoji/raw/master/png/128/
+#   - pattern: emoji_u(CODE, LOWERCASE, UNDERSCORE (_) SEPERATED).png
+# - blobmoji: 
+#   - root: https://github.com/C1710/blobmoji/raw/master/png/128/
+#   - pattern: emoji_u(CODE, LOWERCASE, UNDERSCORE (_) SEPERATED).png
+def str_to_emoji_dl(string, style):
+    """Converts 'U+FE0E', style to xyz"""
+    base = string.replace('U+', '').lower()
+    if style == 'twemoji':
+        return 'https://github.com/twitter/twemoji/raw/master/assets/72x72/%s.png' \
+                % base.replace(' ', '-')
+    elif style == 'noto':
+        return 'https://github.com/googlefonts/noto-emoji/raw/master/png/128/emoji_u%s.png' \
+                % base.replace(' ', '_')
+    elif style == 'blobmoji':
+        return 'https://github.com/C1710/blobmoji/raw/master/png/128/emoji_u%s.png' \
+                % base.replace(' ', '_')
 
 cleanup()
 conn = setup_db()
@@ -87,31 +112,17 @@ class EmojiSpider(scrapy.Spider):
                 }
             }
 
-            # CREATE TABLE emoji (name VARCHAR PRIMARY KEY, code VARCHAR,
-            #                     icon_apple VARCHAR, icon_twemoji VARCHAR,
-            #                     icon_noto VARCHAR, icon_blobmoji VARCHAR,
-            #                     keywords VARCHAR, name_search VARCHAR);
-            # CREATE TABLE skin_tone (name VARCHAR, code VARCHAR, tone VARCHAR,
-            #                         icon_apple VARCHAR, icon_twemoji VARCHAR,
-            #                         icon_noto VARCHAR, icon_blobmoji VARCHAR);
-            # CREATE INDEX name_idx ON skin_tone (name);'''
             for style in EMOJI_STYLES:
                 if style == 'apple':
-                    with open(record['icon_%s' % style],'w') as f:
-                        f.write(base64.decodestring(icon_b64))
+                    # with open(record['icon_%s' % style],'w') as f:
+                    #     f.write(base64.decodestring(icon_b64))
+                    # print('[APPLE]: %s; %s' % (str_to_emoji_dl(code), name))
+                    pass
                 else:
-                    # TODO: depending on the style, download the 
-                    #       emoji from github based on the emoji code
-                    # - twemoji: 
-                    #   - root: https://github.com/twitter/twemoji/raw/master/assets/72x72/
-                    #   - pattern: (CODE, LOWERCASE, DASH(-) SEPERATED).png
-                    # - noto: 
-                    #   - root: https://github.com/googlefonts/noto-emoji/raw/master/png/128/
-                    #   - pattern: emoji_u(CODE, LOWERCASE, UNDERSCORE (_) SEPERATED).png
-                    # - blobmoji: 
-                    #   - root: https://github.com/C1710/blobmoji/raw/master/png/128/
-                    #   - pattern: emoji_u(CODE, LOWERCASE, UNDERSCORE (_) SEPERATED).png
-                    pass 
+                    link = str_to_emoji_dl(code, style)
+                    resp = requests.get(link)
+                    print('[%s] %s' % ('OK' if resp.ok else 'BAD', str_to_emoji_dl(code, style))) 
+                    
 
             if skin_tone:
                 query = '''INSERT INTO skin_tone (name, code, tone, icon_apple, icon_twemoji, 
