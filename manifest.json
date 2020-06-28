@@ -53,14 +53,14 @@
             "type": "select",
             "name": "Skin Tone",
             "description": "Choose the skin tone for your emojis",
-            "default_value": "default",
+            "default_value": "👌 default",
             "options": [
-                "default",
-                "light",
-                "medium-light",
-                "medium",
-                "medium-dark",
-                "dark"
+                "👌 default",
+                "👌🏻 light",
+                "👌🏼 medium-light",
+                "👌🏽 medium",
+                "👌🏾 medium-dark",
+                "👌🏿 dark"
             ]
         }
     ]

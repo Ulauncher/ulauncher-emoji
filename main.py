@@ -15,11 +15,25 @@ db_path = os.path.join(os.path.dirname(__file__), 'emoji.sqlite')
 conn = sqlite3.connect(db_path, check_same_thread=False)
 conn.row_factory = sqlite3.Row
 
+def normalize_skin_tone(tone):
+    """
+    Converts from the more visual skin tone preferences string to a more
+    machine-readable format.
+    """
+    if tone == "👌 default": return ''
+    elif tone == "👌🏻 light": return 'light'
+    elif tone == "👌🏼 medium-light": return 'medium-light'
+    elif tone == "👌🏽 medium": return 'medium'
+    elif tone == "👌🏾 medium-dark": return 'medium-dark'
+    elif tone == "👌🏿 dark": return 'dark'
+    else: return None
+
 class EmojiExtension(Extension):
 
     def __init__(self):
         super(EmojiExtension, self).__init__()
         self.subscribe(KeywordQueryEvent, KeywordQueryEventListener())
+        
         self.allowed_skin_tones = ["", "dark", "light", "medium", "medium-dark", "medium-light"]
 
 class KeywordQueryEventListener(EventListener):
@@ -49,8 +63,7 @@ class KeywordQueryEventListener(EventListener):
                                     on_enter=DoNothingAction())
             ])
 
-        skin_tone = extension.preferences['skin_tone']
-        skin_tone = skin-tone if skin_tone != 'default' else ''
+        skin_tone = normalize_skin_tone(extension.preferences['skin_tone'])
         if skin_tone not in extension.allowed_skin_tones:
             logger.warning('Unknown skin tone "%s"' % skin_tone)
             skin_tone = ''
