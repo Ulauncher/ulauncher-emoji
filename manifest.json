@@ -25,6 +25,30 @@
             ]
         },
         {
+            "id": "fallback_emoji_style",
+            "type": "select",
+            "name": "Fallback Emoji Style",
+            "description": "Choose the style of emojis you prefer, if your first pick isn't available",
+            "default_value": "twemoji",
+            "options": [
+                "apple",
+                "twemoji",
+                "noto",
+                "blobmoji"
+            ]
+        },
+        {
+            "id": "display_char",
+            "type": "select",
+            "name": "Display System Emoji",
+            "description": "If yes, emojis in the search menu will appear to the right of their names, and will be rendered by the system's font.",
+            "default_value": "no",
+            "options": [
+                "no",
+                "yes"
+            ]
+        },
+        {
             "id": "skin_tone",
             "type": "select",
             "name": "Skin Tone",

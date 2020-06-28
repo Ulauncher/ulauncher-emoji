@@ -47,19 +47,18 @@ def str_to_unicode_emoji(s):
     return re.sub(r'U\+([0-9a-fA-F]+)', lambda m: chr(int(m.group(1), 16)), s).replace(' ', '')
 
 
-def str_to_emoji_dl(string, style):
+def codepoint_to_download(codepoint, style):
     """
     Given an emoji's codepoint (e.g. 'U+FE0E') and a non-apple emoji style, 
     returns a potentially-broken download link to a png image of the emoji 
     in that style. 
     """
-    base = string.replace('U+', '').lower()
+    base = codepoint.replace('U+', '').lower()
     if style == 'twemoji':
         # See discussion in commit 8115b76 for more information about
         # why the base needs to be patched like this.
         patched = re.sub(r'0*([1-9a-f][0-9a-f]*)', lambda m: m.group(1), 
-                base.replace(' ', '-').replace('fe0f-20e3', '20e3').replace('-fe0f-', '-').replace('fe0f-', '').replace('-fe0f', ''))
-        
+                base.replace(' ', '-').replace('fe0f-20e3', '20e3').replace('1f441-fe0f-200d-1f5e8-fe0f', '1f441-200d-1f5e8'))
         response = requests.get('https://github.com/twitter/twemoji/raw/gh-pages/v/latest')
         version = response.text if response.ok else None
         if version:
@@ -119,7 +118,7 @@ class EmojiSpider(scrapy.Spider):
                     icon_data = tr.css('.andr img').xpath('@src').extract_first().split('base64,')[1]
                     icon_data = base64.decodestring(icon_data.encode('utf-8'))
                 else:
-                    link = str_to_emoji_dl(code, style)
+                    link = codepoint_to_download(code, style)
                     resp = requests.get(link)
                     icon_data = resp.content if resp.ok else None
                     print('[%s] %s' % ('OK' if resp.ok else 'BAD', link))

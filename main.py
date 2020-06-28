@@ -81,18 +81,24 @@ class KeywordQueryEventListener(EventListener):
             logger.warning('Unknown skin tone "%s"' % skin_tone)
             skin_tone = ''
         
+        
         items = []
+        display_char = extension.preferences['display_char'] != 'no'
         icon_style = extension.preferences['emoji_style']
+        fallback_icon_style = extension.preferences['fallback_emoji_style']
         for row in conn.execute(query, [skin_tone, search_term]):
             if row['skt_code']:
                 icon = row['skt_icon_%s' % icon_style]
+                icon = icon if os.path.exists(icon) else row['skt_icon_%s' % fallback_icon_style] 
                 code = row['skt_code']
             else:
                 icon = row['icon_%s' % icon_style]
+                icon = icon if os.path.exists(icon) else row['icon_%s' % fallback_icon_style] 
                 code = row['code']
             
             items.append(ExtensionResultItem(icon=icon,
-                                             name=row['name'].capitalize(),
+                                             name=row['name'].capitalize() \
+                                                     + (' | %s' % code if display_char else ''),
                                              on_enter=CopyToClipboardAction(code)))
 
         return RenderResultListAction(items)
