@@ -3,7 +3,7 @@ import logging
 import sqlite3
 from ulauncher.api.client.Extension import Extension
 from ulauncher.api.client.EventListener import EventListener
-from ulauncher.api.shared.event import KeywordQueryEvent, PreferencesEvent, PreferencesUpdateEvent
+from ulauncher.api.shared.event import KeywordQueryEvent
 from ulauncher.api.shared.item.ExtensionResultItem import ExtensionResultItem
 from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
 from ulauncher.api.shared.action.CopyToClipboardAction import CopyToClipboardAction
@@ -15,48 +15,19 @@ db_path = os.path.join(os.path.dirname(__file__), 'emoji.sqlite')
 conn = sqlite3.connect(db_path, check_same_thread=False)
 conn.row_factory = sqlite3.Row
 
-def update_extension_icon(emoji_style, extension_icon):
-    """Updates the extension icon to conform to emoji_style
-    
-    If the path extension_icon doesn't exist, it will be
-    symlinked into place. Otherwise, if it's a symlink and 
-    it's not pointing to emoji_style's icon.png, then it will
-    be atomically updated to point to {emoji_style}/icon.png
-    
-    For example, if extension_icon = 'images/icon.png', and 
-    'images/icon.png' doesn't exist yet, then after running 
-    update_extension_icon, the directory structure will look
-    something like the following:
-    
-    images
-    ├── icon.png       --> {emoji_style}/icon.png
-    ├── {emoji_style}
-    │   ├── icon.png 
-    │   └── emoji
-    │       └── (...)
-    └── (...)
-    """
-    styled_extension_icon = '%s/icon.png' % emoji_style
-    if not os.path.exists(extension_icon):
-        # create a symlink
-        os.symlink(styled_extension_icon, extension_icon)
-    elif os.path.islink(extension_icon) and styled_extension_icon not in os.readlink(extension_icon):
-        # Source: https://stackoverflow.com/a/27788271
-        # Replace symlink atomically
-        os.symlink(styled_extension_icon, 'images/icon-replacement.png')
-        os.rename('images/icon-replacement.png', extension_icon)            
-
 class EmojiExtension(Extension):
 
     def __init__(self):
         super(EmojiExtension, self).__init__()
         self.subscribe(KeywordQueryEvent, KeywordQueryEventListener())
         self.allowed_skin_tones = ["", "dark", "light", "medium", "medium-dark", "medium-light"]
-        self.allowed_icon_style = ['apple', 'twemoji', 'noto', 'blobmoji']
 
 class KeywordQueryEventListener(EventListener):
 
     def on_event(self, event, extension):
+        icon_style = extension.preferences['emoji_style']
+        fallback_icon_style = extension.preferences['fallback_emoji_style']
+
         query = r"""SELECT
             em.name, em.code, em.keywords,
             em.icon_apple, em.icon_twemoji, em.icon_noto, em.icon_blobmoji,
@@ -70,13 +41,16 @@ class KeywordQueryEventListener(EventListener):
 
         search_term = ''.join(['%', event.get_argument().replace('%', ''), '%']) if event.get_argument() else None
         if not search_term:
+            search_icon = 'images/%s/icon.png' % icon_style
+            search_icon = search_icon if os.path.exists(search_icon) else 'imags/%s/icon.png' % fallback_icon_style
             return RenderResultListAction([
-                ExtensionResultItem(icon=extension_icon,
+                ExtensionResultItem(icon=search_icon,
                                     name='Type in emoji name...',
                                     on_enter=DoNothingAction())
             ])
 
         skin_tone = extension.preferences['skin_tone']
+        skin_tone = skin-tone if skin_tone != 'default' else ''
         if skin_tone not in extension.allowed_skin_tones:
             logger.warning('Unknown skin tone "%s"' % skin_tone)
             skin_tone = ''
@@ -84,8 +58,6 @@ class KeywordQueryEventListener(EventListener):
         
         items = []
         display_char = extension.preferences['display_char'] != 'no'
-        icon_style = extension.preferences['emoji_style']
-        fallback_icon_style = extension.preferences['fallback_emoji_style']
         for row in conn.execute(query, [skin_tone, search_term]):
             if row['skt_code']:
                 icon = row['skt_icon_%s' % icon_style]
