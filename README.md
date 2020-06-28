@@ -2,7 +2,7 @@
 
 <img aligh="center" src="screenshots/search.png">
 
-<img aligh="center" src="screenshots/settings.png">
+<img aligh="center" src="screenshots/preferences.png">
 
 ### Credits
 
