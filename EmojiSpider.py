@@ -57,7 +57,7 @@ def str_to_emoji_dl(string, style):
     if style == 'twemoji':
         # See discussion in commit 8115b76 for more information about
         # why the base needs to be patched like this.
-        patched = re.sub(r'0*([1-9a-f]+)', lambda m: m.group(1), 
+        patched = re.sub(r'0*([1-9a-f][0-9a-f]*)', lambda m: m.group(1), 
                 base.replace(' ', '-').replace('fe0f-20e3', '20e3'))
         
         response = requests.get('https://github.com/twitter/twemoji/raw/gh-pages/v/latest')
