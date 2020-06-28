@@ -16,7 +16,7 @@
             "type": "select",
             "name": "Emoji Style",
             "description": "Choose the style of emojis you prefer",
-            "default_value": "apple",
+            "default_value":"twemoji",
             "options": [
                 "apple",
                 "twemoji",
@@ -29,7 +29,7 @@
             "type": "select",
             "name": "Fallback Emoji Style",
             "description": "Choose the style of emojis you prefer, if your first pick isn't available",
-            "default_value": "twemoji",
+            "default_value":"noto",
             "options": [
                 "apple",
                 "twemoji",
