@@ -47,11 +47,12 @@ def str_to_unicode_emoji(s):
     return re.sub(r'U\+([0-9a-fA-F]+)', lambda m: chr(int(m.group(1), 16)), s).replace(' ', '')
 
 
-def codepoint_to_download(codepoint, style):
+def codepoint_to_url(codepoint, style):
     """
     Given an emoji's codepoint (e.g. 'U+FE0E') and a non-apple emoji style, 
-    returns a potentially-broken download link to a png image of the emoji 
-    in that style. 
+    returns a url to to the png image of the emoji in that style. 
+
+    Only works for style = 'twemoji', 'noto', and 'blobmoji'.
     """
     base = codepoint.replace('U+', '').lower()
     if style == 'twemoji':
@@ -118,7 +119,7 @@ class EmojiSpider(scrapy.Spider):
                     icon_data = tr.css('.andr img').xpath('@src').extract_first().split('base64,')[1]
                     icon_data = base64.decodestring(icon_data.encode('utf-8'))
                 else:
-                    link = codepoint_to_download(code, style)
+                    link = codepoint_to_url(code, style)
                     resp = requests.get(link)
                     icon_data = resp.content if resp.ok else None
                     print('[%s] %s' % ('OK' if resp.ok else 'BAD', link))
