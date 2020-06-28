@@ -47,23 +47,27 @@ def str_to_unicode_emoji(s):
     return re.sub(r'U\+([0-9a-fA-F]+)', lambda m: chr(int(m.group(1), 16)), s).replace(' ', '')
 
 
-# TODO: depending on the style, download the 
-#       emoji from github based on the emoji code
-# - twemoji: 
-#   - root: https://github.com/twitter/twemoji/raw/master/assets/72x72/
-#   - pattern: (CODE, LOWERCASE, DASH(-) SEPERATED).png
-# - noto: 
-#   - root: https://github.com/googlefonts/noto-emoji/raw/master/png/128/
-#   - pattern: emoji_u(CODE, LOWERCASE, UNDERSCORE (_) SEPERATED).png
-# - blobmoji: 
-#   - root: https://github.com/C1710/blobmoji/raw/master/png/128/
-#   - pattern: emoji_u(CODE, LOWERCASE, UNDERSCORE (_) SEPERATED).png
 def str_to_emoji_dl(string, style):
-    """Converts 'U+FE0E', style to xyz"""
+    """
+    Given an emoji's codepoint (e.g. 'U+FE0E') and a non-apple emoji style, 
+    returns a potentially-broken download link to a png image of the emoji 
+    in that style. 
+    """
     base = string.replace('U+', '').lower()
     if style == 'twemoji':
-        return 'https://github.com/twitter/twemoji/raw/master/assets/72x72/%s.png' \
-                % base.replace(' ', '-')
+        # See discussion in commit 8115b76 for more information about
+        # why the base needs to be patched like this.
+        patched = re.sub(r'0*([1-9a-f]+)', lambda m: m.group(1), 
+                base.replace(' ', '-').replace('fe0f-20e3', '20e3'))
+        
+        response = requests.get('https://github.com/twitter/twemoji/raw/gh-pages/v/latest')
+        version = response.text if response.ok else None
+        if version:
+            return 'https://github.com/twitter/twemoji/raw/gh-pages/v/%s/72x72/%s.png' \
+                    % (version, patched)
+        else:
+            return 'https://github.com/twitter/twemoji/raw/master/assets/72x72/%s.png' \
+                    % patched
     elif style == 'noto':
         return 'https://github.com/googlefonts/noto-emoji/raw/master/png/128/emoji_u%s.png' \
                 % base.replace(' ', '_')
@@ -73,7 +77,6 @@ def str_to_emoji_dl(string, style):
 
 cleanup()
 conn = setup_db()
-
 
 class EmojiSpider(scrapy.Spider):
     name = 'emojispider'
@@ -123,7 +126,6 @@ class EmojiSpider(scrapy.Spider):
                     resp = requests.get(link)
                     print('[%s] %s' % ('OK' if resp.ok else 'BAD', str_to_emoji_dl(code, style))) 
                     
-
             if skin_tone:
                 query = '''INSERT INTO skin_tone (name, code, tone, icon_apple, icon_twemoji, 
                                                   icon_noto, icon_blobmoji)
