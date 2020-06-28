@@ -56,7 +56,7 @@ class KeywordQueryEventListener(EventListener):
         search_term = ''.join(['%', event.get_argument().replace('%', ''), '%']) if event.get_argument() else None
         if not search_term:
             search_icon = 'images/%s/icon.png' % icon_style
-            search_icon = search_icon if os.path.exists(search_icon) else 'imags/%s/icon.png' % fallback_icon_style
+            search_icon = search_icon if os.path.exists(search_icon) else 'images/%s/icon.png' % fallback_icon_style
             return RenderResultListAction([
                 ExtensionResultItem(icon=search_icon,
                                     name='Type in emoji name...',
@@ -67,7 +67,6 @@ class KeywordQueryEventListener(EventListener):
         if skin_tone not in extension.allowed_skin_tones:
             logger.warning('Unknown skin tone "%s"' % skin_tone)
             skin_tone = ''
-        
         
         items = []
         display_char = extension.preferences['display_char'] != 'no'
