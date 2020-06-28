@@ -1,6 +1,8 @@
 # Emoji Extension
 
-<img aligh="center" src="http://i.imgur.com/5jaaUQ5.png">
+<img aligh="center" src="screenshots/search.png">
+
+<img aligh="center" src="screenshots/settings.png">
 
 ### Credits
 
