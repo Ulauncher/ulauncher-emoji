@@ -58,7 +58,7 @@ def str_to_emoji_dl(string, style):
         # See discussion in commit 8115b76 for more information about
         # why the base needs to be patched like this.
         patched = re.sub(r'0*([1-9a-f][0-9a-f]*)', lambda m: m.group(1), 
-                base.replace(' ', '-').replace('fe0f-20e3', '20e3'))
+                base.replace(' ', '-').replace('fe0f-20e3', '20e3'))# .replace('-fe0f-', '-').replace('fe0f-', '').replace('-fe0f'))
         
         response = requests.get('https://github.com/twitter/twemoji/raw/gh-pages/v/latest')
         version = response.text if response.ok else None
@@ -91,7 +91,6 @@ class EmojiSpider(scrapy.Spider):
             name = ''.join(tr.xpath('(.//td[@class="name"])[1]//text()').extract())
             keywords = ''.join(tr.xpath('(.//td[@class="name"])[2]//text()').extract())
             keywords = ' '.join([kw.strip() for kw in keywords.split('|') if 'skin tone' not in kw])
-            icon_b64 = tr.css('.andr img').xpath('@src').extract_first().split('base64,')[1]
             name = name.replace(u'⊛', '').strip()
             icon_name = name.replace(':', '').replace(' ', '_')
             skin_tone = ''
@@ -110,21 +109,24 @@ class EmojiSpider(scrapy.Spider):
                 )),
                 # Icons Styles 
                 **{ 'icon_%s' % style: '%s/%s.png' \
-                        % (ICONS_PATH(style), icon_name.encode('ascii', 'ignore')) \
+                        % (ICONS_PATH(style), icon_name) \
                         for style in EMOJI_STYLES \
                 }
             }
 
             for style in EMOJI_STYLES:
                 if style == 'apple':
-                    # with open(record['icon_%s' % style],'w') as f:
-                    #     f.write(base64.decodestring(icon_b64))
-                    # print('[APPLE]: %s; %s' % (str_to_emoji_dl(code), name))
-                    pass
+                    icon_data = tr.css('.andr img').xpath('@src').extract_first().split('base64,')[1]
+                    icon_data = base64.decodestring(icon_data.encode('utf-8'))
                 else:
                     link = str_to_emoji_dl(code, style)
                     resp = requests.get(link)
-                    print('[%s] %s' % ('OK' if resp.ok else 'BAD', str_to_emoji_dl(code, style))) 
+                    icon_data = resp.content if resp.ok else None
+                    # print('[%s] %s' % ('OK' if resp.ok else 'BAD', link))
+
+                if icon_data:
+                    with open(record['icon_%s' % style], 'wb') as f:
+                        f.write(icon_data)
                     
             if skin_tone:
                 query = '''INSERT INTO skin_tone (name, code, tone, icon_apple, icon_twemoji, 
