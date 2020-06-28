@@ -61,7 +61,8 @@ class KeywordQueryEventListener(EventListener):
             em.name, em.code, em.keywords,
             em.icon_apple, em.icon_twemoji, em.icon_noto, em.icon_blobmoji,
             skt.icon_apple AS skt_icon_apple, skt.icon_twemoji AS skt_icon_twemoji, 
-            skt.icon_noto AS skt_icon_noto, skt.icon_blobmoji AS skt_icon_blobmoji 
+            skt.icon_noto AS skt_icon_noto, skt.icon_blobmoji AS skt_icon_blobmoji,
+            skt.code AS skt_code
             FROM emoji AS em
             LEFT JOIN skin_tone AS skt ON skt.name = em.name AND tone = ?
             WHERE name_search LIKE ?
