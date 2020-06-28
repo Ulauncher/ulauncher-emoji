@@ -58,7 +58,7 @@ def str_to_emoji_dl(string, style):
         # See discussion in commit 8115b76 for more information about
         # why the base needs to be patched like this.
         patched = re.sub(r'0*([1-9a-f][0-9a-f]*)', lambda m: m.group(1), 
-                base.replace(' ', '-').replace('fe0f-20e3', '20e3'))# .replace('-fe0f-', '-').replace('fe0f-', '').replace('-fe0f'))
+                base.replace(' ', '-').replace('fe0f-20e3', '20e3').replace('-fe0f-', '-').replace('fe0f-', '').replace('-fe0f', ''))
         
         response = requests.get('https://github.com/twitter/twemoji/raw/gh-pages/v/latest')
         version = response.text if response.ok else None
@@ -122,7 +122,7 @@ class EmojiSpider(scrapy.Spider):
                     link = str_to_emoji_dl(code, style)
                     resp = requests.get(link)
                     icon_data = resp.content if resp.ok else None
-                    # print('[%s] %s' % ('OK' if resp.ok else 'BAD', link))
+                    print('[%s] %s' % ('OK' if resp.ok else 'BAD', link))
 
                 if icon_data:
                     with open(record['icon_%s' % style], 'wb') as f:
