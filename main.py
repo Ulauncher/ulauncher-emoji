@@ -56,7 +56,6 @@ class KeywordQueryEventListener(EventListener):
         search_term = ''.join(['%', event.get_argument().replace('%', ''), '%']) if event.get_argument() else None
         if not search_term:
             search_icon = 'images/%s/icon.png' % icon_style
-            search_icon = search_icon if os.path.exists(search_icon) else 'images/%s/icon.png' % fallback_icon_style
             return RenderResultListAction([
                 ExtensionResultItem(icon=search_icon,
                                     name='Type in emoji name...',
@@ -73,11 +72,11 @@ class KeywordQueryEventListener(EventListener):
         for row in conn.execute(query, [skin_tone, search_term]):
             if row['skt_code']:
                 icon = row['skt_icon_%s' % icon_style]
-                icon = icon if os.path.exists(icon) else row['skt_icon_%s' % fallback_icon_style] 
+                icon = row['skt_icon_%s' % fallback_icon_style] if not icon else icon
                 code = row['skt_code']
             else:
                 icon = row['icon_%s' % icon_style]
-                icon = icon if os.path.exists(icon) else row['icon_%s' % fallback_icon_style] 
+                icon = row['icon_%s' % fallback_icon_style] if not icon else icon
                 code = row['code']
             
             items.append(ExtensionResultItem(icon=icon,

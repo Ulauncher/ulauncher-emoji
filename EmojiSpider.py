@@ -113,7 +113,8 @@ class EmojiSpider(scrapy.Spider):
                         for style in EMOJI_STYLES \
                 }
             }
-
+            
+            supported_styles = []
             for style in EMOJI_STYLES:
                 if style == 'apple':
                     icon_data = tr.css('.andr img').xpath('@src').extract_first().split('base64,')[1]
@@ -127,17 +128,17 @@ class EmojiSpider(scrapy.Spider):
                 if icon_data:
                     with open(record['icon_%s' % style], 'wb') as f:
                         f.write(icon_data)
-                    
+                    supported_styles += [style] 
+
+            supported_styles = ['icon_%s' % style for style in supported_styles]
             if skin_tone:
-                query = '''INSERT INTO skin_tone (name, code, tone, icon_apple, icon_twemoji, 
-                                                  icon_noto, icon_blobmoji)
-                           VALUES (:name, :code, :tone, :icon_apple, :icon_twemoji, 
-                                   :icon_noto, :icon_blobmoji)'''
+                query = 'INSERT INTO skin_tone (name, code, tone, ' + ', '.join(supported_styles) + ')
+                         VALUES (:name, :code, :tone, ' + ', '.join([':%s' % s for s in supported_styles]) + ')'
             else:
-                query = '''INSERT INTO emoji (name, code, icon_apple, icon_twemoji, 
-                                              icon_noto, icon_blobmoji, keywords, name_search)
-                           VALUES (:name, :code, :icon_apple, :icon_twemoji, 
-                                   :icon_noto, :icon_blobmoji, :keywords, :name_search)'''
+                query = 'INSERT INTO emoji (name, code, tone, ' + ", ".join(supported_styles) + ', 
+                                            keywords, name_search)
+                         VALUES (:name, :code, ' + ', '.join([':%s' % s for s in supported_styles]) + ',
+                                 :keywords, :name_search)'
             conn.execute(query, record)
 
             yield record
