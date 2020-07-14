@@ -132,13 +132,13 @@ class EmojiSpider(scrapy.Spider):
 
             supported_styles = ['icon_%s' % style for style in supported_styles]
             if skin_tone:
-                query = 'INSERT INTO skin_tone (name, code, tone, ' + ', '.join(supported_styles) + ')
-                         VALUES (:name, :code, :tone, ' + ', '.join([':%s' % s for s in supported_styles]) + ')'
+                query = '''INSERT INTO skin_tone (name, code, tone, ''' + ', '.join(supported_styles) + ''')
+                           VALUES (:name, :code, :tone, ''' + ', '.join([':%s' % s for s in supported_styles]) + ''')'''
             else:
-                query = 'INSERT INTO emoji (name, code, tone, ' + ", ".join(supported_styles) + ', 
+                query = '''INSERT INTO emoji (name, code, tone, ''' + ', '.join(supported_styles) + ''', 
                                             keywords, name_search)
-                         VALUES (:name, :code, ' + ', '.join([':%s' % s for s in supported_styles]) + ',
-                                 :keywords, :name_search)'
+                           VALUES (:name, :code, ''' + ', '.join([':%s' % s for s in supported_styles]) + ''',
+                                   :keywords, :name_search)'''
             conn.execute(query, record)
 
             yield record
