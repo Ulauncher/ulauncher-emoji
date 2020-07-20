@@ -42,6 +42,7 @@ def setup_db():
         CREATE TABLE skin_tone (
             name VARCHAR, 
             code VARCHAR, 
+            shortcodes VARCHAR,
             tone VARCHAR,
             icon_apple VARCHAR, 
             icon_twemoji VARCHAR,
@@ -130,10 +131,11 @@ class EmojiSpider(scrapy.Spider):
                 name = name.replace(': %s skin tone' % skin_tone, '')
             shortcodes = name_to_shortcodes(name)
             
+            print("Fetching [%s]: %s" % (encoded_code, name))
             record = {
                 'name': name,
                 'code': encoded_code,
-                'shortcodes': ' '.join(shortcodes)
+                'shortcodes': ' '.join(shortcodes),
                 'keywords': keywords,
                 'tone': skin_tone,
                 'name_search': ' '.join(set(
@@ -164,13 +166,13 @@ class EmojiSpider(scrapy.Spider):
 
             supported_styles = ['icon_%s' % style for style in supported_styles]
             if skin_tone:
-                query = '''INSERT INTO skin_tone (name, code, tone, ''' + ', '.join(supported_styles) + ''')
-                           VALUES (:name, :code, :tone, ''' + ', '.join([':%s' % s for s in supported_styles]) + ''')'''
+                query = '''INSERT INTO skin_tone (name, code, shortcodes, tone, ''' + ', '.join(supported_styles) + ''')
+                           VALUES (:name, :code, :tone, :shortcodes, ''' + ', '.join([':%s' % s for s in supported_styles]) + ''')'''
             else:
                 query = '''INSERT INTO emoji (name, code, ''' + ', '.join(supported_styles) + ''', 
-                                              keywords, name_search)
+                                              keywords, name_search, shortcodes)
                            VALUES (:name, :code, ''' + ', '.join([':%s' % s for s in supported_styles]) + ''',
-                                   :keywords, :name_search)'''
+                                   :keywords, :name_search, :shortcodes)'''
             
             conn.execute(query, record)
 
