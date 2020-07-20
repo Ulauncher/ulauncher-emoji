@@ -31,6 +31,7 @@ def setup_db():
         CREATE TABLE emoji (
             name VARCHAR PRIMARY KEY, 
             code VARCHAR,
+            shortcodes VARCHAR,
             icon_apple VARCHAR, 
             icon_twemoji VARCHAR,
             icon_noto VARCHAR, 
@@ -89,7 +90,7 @@ def codepoint_to_url(codepoint, style):
         return 'https://github.com/C1710/blobmoji/raw/master/png/128/emoji_u%s.png' \
                 % base.replace(' ', '_')
 
-def shortname_to_shortcodes(shortname):
+def name_to_shortcodes(shortname):
     """
     Given an emoji's CLDR Shortname (e.g. 'grinning face with smiling eyes'), returns a list
     of common shortcodes used for that emoji.
@@ -127,15 +128,16 @@ class EmojiSpider(scrapy.Spider):
             if found:
                 skin_tone = found.group('skin_tone')
                 name = name.replace(': %s skin tone' % skin_tone, '')
-
+            shortcodes = name_to_shortcodes(name)
+            
             record = {
                 'name': name,
                 'code': encoded_code,
+                'shortcodes': ' '.join(shortcodes)
                 'keywords': keywords,
                 'tone': skin_tone,
                 'name_search': ' '.join(set(
-                    [kw.strip() for kw in ('%s %s' % (name, keywords)).split(' ')] \
-                            + shortname_to_shortcodes(name)
+                    shortcodes + [kw.strip() for kw in ('%s %s' % (name, keywords)).split(' ')]
                 )),
                 # Icons Styles 
                 **{ 'icon_%s' % style: '%s/%s.png' \
