@@ -50,10 +50,10 @@ class KeywordQueryEventListener(EventListener):
             skt.code AS skt_code
             FROM emoji AS em
             LEFT JOIN skin_tone AS skt ON skt.name = em.name AND tone = ?
-            WHERE name_search LIKE ?
+            WHERE name_search LIKE %?%
             LIMIT 8"""
 
-        search_term = ''.join(['%', event.get_argument().replace('%', ''), '%']) if event.get_argument() else None
+        search_term = event.get_argument().replace('%', '') if event.get_argument() else None
         if not search_term:
             search_icon = 'images/%s/icon.png' % icon_style
             return RenderResultListAction([
