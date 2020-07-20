@@ -93,13 +93,16 @@ def shortname_to_shortcodes(shortname):
     """
     Given an emoji's CLDR Shortname (e.g. 'grinning face with smiling eyes'), returns a list
     of common shortcodes used for that emoji.
+
+    NOTE: These shortcodes will NOT have colons at the beginning and end, even if they normally
+          would.
     """
     url = 'https://emojipedia.org/%s/' % shortname.replace(' ', '-').lower()
     response = requests.get(url, stream=True)
     response.raw.decode_content = True
     html = lxml.html.parse(response.raw) if response.ok else None
     shortcode_nodes = html.xpath('//ul[@class="shortcodes"]/li/span[@class="shortcode"]') if html else []
-    return [s.text for s in shortcode_nodes]
+    return [s.text[1:-1] for s in shortcode_nodes]
 
 cleanup()
 conn = setup_db()
@@ -131,7 +134,8 @@ class EmojiSpider(scrapy.Spider):
                 'keywords': keywords,
                 'tone': skin_tone,
                 'name_search': ' '.join(set(
-                    [kw.strip() for kw in ('%s %s' % (name, keywords)).split(' ')]
+                    [kw.strip() for kw in ('%s %s' % (name, keywords)).split(' ')] \
+                            + shortname_to_shortcodes(name)
                 )),
                 # Icons Styles 
                 **{ 'icon_%s' % style: '%s/%s.png' \
