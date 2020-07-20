@@ -41,6 +41,7 @@ class KeywordQueryEventListener(EventListener):
     def on_event(self, event, extension):
         icon_style = extension.preferences['emoji_style']
         fallback_icon_style = extension.preferences['fallback_emoji_style']
+        search_with_shortcodes = extension.preferences['search_with'] == 'shortcodes'
 
         query = r"""SELECT
             em.name, em.code, em.keywords,
@@ -50,8 +51,8 @@ class KeywordQueryEventListener(EventListener):
             skt.code AS skt_code
             FROM emoji AS em
             LEFT JOIN skin_tone AS skt ON skt.name = em.name AND tone = ?
-            WHERE name_search LIKE %?%
-            LIMIT 8"""
+            WHERE %s LIKE %?%
+            LIMIT 8""" % 'shortcodes' if search_with_shortcodes else 'name_search'
 
         search_term = event.get_argument().replace('%', '') if event.get_argument() else None
         if not search_term:
@@ -79,9 +80,12 @@ class KeywordQueryEventListener(EventListener):
                 icon = row['icon_%s' % fallback_icon_style] if not icon else icon
                 code = row['code']
             
-            items.append(ExtensionResultItem(icon=icon,
-                                             name=row['name'].capitalize() \
-                                                     + (' | %s' % code if display_char else ''),
+            name = ':%s:' % row['shortcodes'].split(' ')[0] \
+                    if search_with_shortcodes \
+                    else row['name'].capitalize() 
+            if display_char: name += ' | %s' % code
+
+            items.append(ExtensionResultItem(icon=icon, name=name
                                              on_enter=CopyToClipboardAction(code)))
 
         return RenderResultListAction(items)
