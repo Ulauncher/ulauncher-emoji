@@ -28,14 +28,27 @@ def cleanup():
 def setup_db():
     conn = sqlite3.connect('emoji.sqlite', check_same_thread=False)
     conn.executescript('''
-        CREATE TABLE emoji (name VARCHAR PRIMARY KEY, code VARCHAR,
-                            icon_apple VARCHAR, icon_twemoji VARCHAR,
-                            icon_noto VARCHAR, icon_blobmoji VARCHAR,
-                            keywords VARCHAR, name_search VARCHAR);
-        CREATE TABLE skin_tone (name VARCHAR, code VARCHAR, tone VARCHAR,
-                                icon_apple VARCHAR, icon_twemoji VARCHAR,
-                                icon_noto VARCHAR, icon_blobmoji VARCHAR);
-        CREATE INDEX name_idx ON skin_tone (name);''')
+        CREATE TABLE emoji (
+            name VARCHAR PRIMARY KEY, 
+            code VARCHAR,
+            icon_apple VARCHAR, 
+            icon_twemoji VARCHAR,
+            icon_noto VARCHAR, 
+            icon_blobmoji VARCHAR,
+            keywords VARCHAR, 
+            name_search VARCHAR
+        );
+        CREATE TABLE skin_tone (
+            name VARCHAR, 
+            code VARCHAR, 
+            tone VARCHAR,
+            icon_apple VARCHAR, 
+            icon_twemoji VARCHAR,
+            icon_noto VARCHAR, 
+            icon_blobmoji VARCHAR
+        );
+        CREATE INDEX name_idx ON skin_tone (name);
+        ''')
     conn.row_factory = sqlite3.Row
 
     return conn
