@@ -12,6 +12,17 @@
             "default_value": "em"
         },
         {
+          "id": "search_with",
+          "type": "select",
+          "name": "Search With Names/Shortcodes",
+          "description": "Choose to search with emoji names, or with common emoji shortcodes.",
+          "default_value": "names",
+          "options": [
+            "shortcodes",
+            "names"
+          ]
+        },
+        {
             "id": "emoji_style",
             "type": "select",
             "name": "Emoji Style",
