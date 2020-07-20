@@ -3,6 +3,7 @@ import os
 import re
 import scrapy
 import requests
+import lxml.html
 import sqlite3
 import shutil
 import base64
@@ -74,6 +75,18 @@ def codepoint_to_url(codepoint, style):
     elif style == 'blobmoji':
         return 'https://github.com/C1710/blobmoji/raw/master/png/128/emoji_u%s.png' \
                 % base.replace(' ', '_')
+
+def shortname_to_shortcodes(shortname):
+    """
+    Given an emoji's CLDR Shortname (e.g. 'grinning face with smiling eyes'), returns a list
+    of common shortcodes used for that emoji.
+    """
+    url = 'https://emojipedia.org/%s/' % shortname.replace(' ', '-').lower()
+    response = requests.get(url, stream=True)
+    response.raw.decode_content = True
+    html = lxml.html.parse(response.raw) if response.ok else None
+    shortcode_nodes = html.xpath('//ul[@class="shortcodes"]/li/span[@class="shortcode"]') if html else []
+    return [s.text for s in shortcode_nodes]
 
 cleanup()
 conn = setup_db()
