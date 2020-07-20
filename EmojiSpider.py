@@ -116,7 +116,9 @@ class EmojiSpider(scrapy.Spider):
 
     def parse(self, response):
         icon = 0
-        for tr in response.xpath('//tr[.//td[@class="code"]]'):
+        emoji_nodes = response.xpath('//tr[.//td[@class="code"]]')
+        for i in range(0, len(emoji_nodes)):
+            tr = emoji_nodes[i]
             code = tr.css('.code a::text').extract_first()
             encoded_code = str_to_unicode_emoji(code)
             name = ''.join(tr.xpath('(.//td[@class="name"])[1]//text()').extract())
@@ -131,7 +133,7 @@ class EmojiSpider(scrapy.Spider):
                 name = name.replace(': %s skin tone' % skin_tone, '')
             shortcodes = name_to_shortcodes(name)
             
-            print("Fetching [%s]: %s" % (encoded_code, name))
+            print("Fetching %i/%i: %s %s" % (i+1, len(emoji_nodes), encoded_code, name))
             record = {
                 'name': name,
                 'code': encoded_code,
@@ -148,6 +150,7 @@ class EmojiSpider(scrapy.Spider):
                 }
             }
             
+            print("🖼  Downloading Icons...")
             supported_styles = []
             for style in EMOJI_STYLES:
                 if style == 'apple':
@@ -157,7 +160,7 @@ class EmojiSpider(scrapy.Spider):
                     link = codepoint_to_url(code, style)
                     resp = requests.get(link)
                     icon_data = resp.content if resp.ok else None
-                    print('[%s] %s' % ('OK' if resp.ok else 'BAD', link))
+                    print('- %s: %s' % ('✅' if resp.ok else '❎', style))
 
                 if icon_data:
                     with open(record['icon_%s' % style], 'wb') as f:
