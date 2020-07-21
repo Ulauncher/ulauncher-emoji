@@ -31,7 +31,6 @@ def setup_db():
         CREATE TABLE emoji (
             name VARCHAR PRIMARY KEY, 
             code VARCHAR,
-            shortcodes VARCHAR,
             icon_apple VARCHAR, 
             icon_twemoji VARCHAR,
             icon_noto VARCHAR, 
@@ -42,12 +41,15 @@ def setup_db():
         CREATE TABLE skin_tone (
             name VARCHAR, 
             code VARCHAR, 
-            shortcodes VARCHAR,
             tone VARCHAR,
             icon_apple VARCHAR, 
             icon_twemoji VARCHAR,
             icon_noto VARCHAR, 
             icon_blobmoji VARCHAR
+        );
+        CREATE TABLE shortcode (
+            name VARCHAR,
+            code VARCHAR
         );
         CREATE INDEX name_idx ON skin_tone (name);
         ''')
@@ -95,7 +97,7 @@ def name_to_shortcodes(shortname):
     """
     Given an emoji's CLDR Shortname (e.g. 'grinning face with smiling eyes'), returns a list
     of common shortcodes used for that emoji.
-
+    
     NOTE: These shortcodes will NOT have colons at the beginning and end, even if they normally
           would.
     """
@@ -104,7 +106,7 @@ def name_to_shortcodes(shortname):
     response.raw.decode_content = True
     html = lxml.html.parse(response.raw) if response.ok else None
     shortcode_nodes = html.xpath('//ul[@class="shortcodes"]/li/span[@class="shortcode"]') if html else []
-    return [s.text[1:-1] for s in shortcode_nodes]
+    return [s.text for s in shortcode_nodes]
 
 cleanup()
 conn = setup_db()
@@ -118,6 +120,7 @@ class EmojiSpider(scrapy.Spider):
         icon = 0
         emoji_nodes = response.xpath('//tr[.//td[@class="code"]]')
         for i in range(0, len(emoji_nodes)):
+            # Scrape Data from unicode.org
             tr = emoji_nodes[i]
             code = tr.css('.code a::text').extract_first()
             encoded_code = str_to_unicode_emoji(code)
@@ -132,7 +135,8 @@ class EmojiSpider(scrapy.Spider):
                 skin_tone = found.group('skin_tone')
                 name = name.replace(': %s skin tone' % skin_tone, '')
             shortcodes = name_to_shortcodes(name)
-            
+
+            # Prepare emoji data to be inserted into DB
             print("Fetching %i/%i: %s %s" % (i+1, len(emoji_nodes), encoded_code, name))
             record = {
                 'name': name,
@@ -141,15 +145,16 @@ class EmojiSpider(scrapy.Spider):
                 'keywords': keywords,
                 'tone': skin_tone,
                 'name_search': ' '.join(set(
-                    shortcodes + [kw.strip() for kw in ('%s %s' % (name, keywords)).split(' ')]
+                    [s[1:-1] for s in shortcodes] + [kw.strip() for kw in ('%s %s' % (name, keywords)).split(' ')]
                 )),
-                # Icons Styles 
+                # Merge icon styles into record
                 **{ 'icon_%s' % style: '%s/%s.png' \
                         % (ICONS_PATH(style), icon_name) \
                         for style in EMOJI_STYLES \
                 }
             }
-            
+
+            # Download Icons for each emoji
             print("🖼  Downloading Icons...")
             supported_styles = []
             for style in EMOJI_STYLES:
@@ -161,24 +166,29 @@ class EmojiSpider(scrapy.Spider):
                     resp = requests.get(link)
                     icon_data = resp.content if resp.ok else None
                     print('- %s: %s' % ('✅' if resp.ok else '❎', style))
-
+                
                 if icon_data:
                     with open(record['icon_%s' % style], 'wb') as f:
                         f.write(icon_data)
                     supported_styles += [style] 
 
+            # Insert emoji into DB
             supported_styles = ['icon_%s' % style for style in supported_styles]
             if skin_tone:
-                query = '''INSERT INTO skin_tone (name, code, shortcodes, tone, ''' + ', '.join(supported_styles) + ''')
-                           VALUES (:name, :code, :tone, :shortcodes, ''' + ', '.join([':%s' % s for s in supported_styles]) + ''')'''
+                query = '''INSERT INTO skin_tone (name, code, tone, ''' + ', '.join(supported_styles) + ''')
+                           VALUES (:name, :code, :tone, ''' + ', '.join([':%s' % s for s in supported_styles]) + ''');'''
             else:
                 query = '''INSERT INTO emoji (name, code, ''' + ', '.join(supported_styles) + ''', 
-                                              keywords, name_search, shortcodes)
+                                              keywords, name_search)
                            VALUES (:name, :code, ''' + ', '.join([':%s' % s for s in supported_styles]) + ''',
-                                   :keywords, :name_search, :shortcodes)'''
-            
-            conn.execute(query, record)
+                                   :keywords, :name_search);'''
+             
+            # Insert associated shortcodes into DB
+            for s in shortcodes:
+                query += '''INSERT INTO shortcode (name, code)
+                            VALUES (:name, "%s");''' % s
 
+            conn.execute(query, record)
             yield record
 
         conn.commit()
