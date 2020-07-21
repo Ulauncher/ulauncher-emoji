@@ -189,10 +189,5 @@ class EmojiSpider(scrapy.Spider):
                 squery = '''INSERT INTO shortcode (name, code)
                             VALUES (:name, "%s")''' % sc
                 conn.execute(squery, record)
-            
-            if ":sweat_smile:" in shortcodes:
-                break
-            else:
-                yield record
 
         conn.commit()
