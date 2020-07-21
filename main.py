@@ -41,22 +41,26 @@ class KeywordQueryEventListener(EventListener):
     def on_event(self, event, extension):
         icon_style = extension.preferences['emoji_style']
         fallback_icon_style = extension.preferences['fallback_emoji_style']
-        search_with_shortcodes = extension.preferences['search_with'] == 'shortcodes'
+        search_term = event.get_argument().replace('%', '') if event.get_argument() else None
+        search_with_shortcodes = extension.preferences['search_with'] == 'shortcodes' \
+                or (search_term and search_term.startswith(':'))
 
         query = '''
             SELECT em.name, em.code, em.keywords,
                    em.icon_apple, em.icon_twemoji, em.icon_noto, em.icon_blobmoji,
                    skt.icon_apple AS skt_icon_apple, skt.icon_twemoji AS skt_icon_twemoji,
                    skt.icon_noto AS skt_icon_noto, skt.icon_blobmoji AS skt_icon_blobmoji,
-                   skt.code AS skt_code
+                   skt.code AS skt_code, sc.code AS shortcode
             FROM emoji AS em
               LEFT JOIN skin_tone AS skt 
                 ON skt.name = em.name AND tone = ?
-            WHERE %s LIKE %?%
+              LEFT JOIN shortcode AS sc 
+                ON sc.name = em.name
+            WHERE %s -- shortcode LIKE ?% -- name_search LIKE %?%
             LIMIT 8
-            ''' % 'shortcodes' if search_with_shortcodes else 'name_search'
+            ''' % 'shortcode LIKE ?%' if search_with_shortcodes else 'name_search LIKE %?%'
 
-        search_term = event.get_argument().replace('%', '') if event.get_argument() else None
+        # Display blank prompt if user hasn't typed anything
         if not search_term:
             search_icon = 'images/%s/icon.png' % icon_style
             return RenderResultListAction([
@@ -70,6 +74,7 @@ class KeywordQueryEventListener(EventListener):
             logger.warning('Unknown skin tone "%s"' % skin_tone)
             skin_tone = ''
         
+        # Get list of results from sqlite DB
         items = []
         display_char = extension.preferences['display_char'] != 'no'
         for row in conn.execute(query, [skin_tone, search_term]):
