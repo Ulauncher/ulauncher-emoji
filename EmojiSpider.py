@@ -172,23 +172,27 @@ class EmojiSpider(scrapy.Spider):
                         f.write(icon_data)
                     supported_styles += [style] 
 
-            # Insert emoji into DB
+            # Prepare emoji insertion query
             supported_styles = ['icon_%s' % style for style in supported_styles]
             if skin_tone:
                 query = '''INSERT INTO skin_tone (name, code, tone, ''' + ', '.join(supported_styles) + ''')
-                           VALUES (:name, :code, :tone, ''' + ', '.join([':%s' % s for s in supported_styles]) + ''');'''
+                           VALUES (:name, :code, :tone, ''' + ', '.join([':%s' % s for s in supported_styles]) + ''')'''
             else:
                 query = '''INSERT INTO emoji (name, code, ''' + ', '.join(supported_styles) + ''', 
                                               keywords, name_search)
                            VALUES (:name, :code, ''' + ', '.join([':%s' % s for s in supported_styles]) + ''',
-                                   :keywords, :name_search);'''
-             
-            # Insert associated shortcodes into DB
-            for s in shortcodes:
-                query += '''INSERT INTO shortcode (name, code)
-                            VALUES (:name, "%s");''' % s
-
+                                   :keywords, :name_search)'''
+            
+            # Insert emoji & associated shortcodes into DB
             conn.execute(query, record)
-            yield record
+            for sc in shortcodes:
+                squery = '''INSERT INTO shortcode (name, code)
+                            VALUES (:name, "%s")''' % sc
+                conn.execute(squery, record)
+            
+            if ":sweat_smile:" in shortcodes:
+                break
+            else:
+                yield record
 
         conn.commit()

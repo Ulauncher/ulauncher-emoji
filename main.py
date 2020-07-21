@@ -1,6 +1,7 @@
 import os
 import logging
 import sqlite3
+from pprint import pprint
 from ulauncher.api.client.Extension import Extension
 from ulauncher.api.client.EventListener import EventListener
 from ulauncher.api.shared.event import KeywordQueryEvent
@@ -44,21 +45,33 @@ class KeywordQueryEventListener(EventListener):
         search_term = event.get_argument().replace('%', '') if event.get_argument() else None
         search_with_shortcodes = extension.preferences['search_with'] == 'shortcodes' \
                 or (search_term and search_term.startswith(':'))
+        # Add %'s to search term (since LIKE %?% doesn't work)
+        if search_term and search_with_shortcodes:
+            search_term = ''.join([search_term, '%'])
+        elif search_term:
+            search_term = ''.join(['%', search_term, '%'])
 
+        where_clause = 'shortcode LIKE ?' if search_with_shortcodes else 'name_search LIKE ?'
+        join_clause = '''
+              LEFT JOIN skin_tone AS skt 
+                ON skt.name = em.name AND tone = ?
+              LEFT JOIN shortcode AS sc 
+                ON sc.name = em.name
+              ''' if search_with_shortcodes else '''
+              LEFT JOIN skin_tone AS skt 
+                ON skt.name = em.name AND tone = ?
+              '''
+        select_extension = ', sc.code as shortcode' if search_with_shortcodes else ''
         query = '''
             SELECT em.name, em.code, em.keywords,
                    em.icon_apple, em.icon_twemoji, em.icon_noto, em.icon_blobmoji,
                    skt.icon_apple AS skt_icon_apple, skt.icon_twemoji AS skt_icon_twemoji,
                    skt.icon_noto AS skt_icon_noto, skt.icon_blobmoji AS skt_icon_blobmoji,
-                   skt.code AS skt_code, sc.code AS shortcode
-            FROM emoji AS em
-              LEFT JOIN skin_tone AS skt 
-                ON skt.name = em.name AND tone = ?
-              LEFT JOIN shortcode AS sc 
-                ON sc.name = em.name
-            WHERE %s -- shortcode LIKE ?% -- name_search LIKE %?%
+                   skt.code AS skt_code''' + select_extension + '''
+            FROM emoji AS em ''' + join_clause + '''
+            WHERE ''' + where_clause + '''
             LIMIT 8
-            ''' % 'shortcode LIKE ?%' if search_with_shortcodes else 'name_search LIKE %?%'
+            '''
 
         # Display blank prompt if user hasn't typed anything
         if not search_term:
@@ -87,12 +100,10 @@ class KeywordQueryEventListener(EventListener):
                 icon = row['icon_%s' % fallback_icon_style] if not icon else icon
                 code = row['code']
             
-            name = ':%s:' % row['shortcodes'].split(' ')[0] \
-                    if search_with_shortcodes \
-                    else row['name'].capitalize() 
+            name = row['shortcode'] if search_with_shortcodes else row['name'].capitalize() 
             if display_char: name += ' | %s' % code
 
-            items.append(ExtensionResultItem(icon=icon, name=name
+            items.append(ExtensionResultItem(icon=icon, name=name,
                                              on_enter=CopyToClipboardAction(code)))
 
         return RenderResultListAction(items)
