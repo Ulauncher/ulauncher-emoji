@@ -101,7 +101,7 @@ def name_to_shortcodes(shortname):
     NOTE: These shortcodes will NOT have colons at the beginning and end, even if they normally
           would.
     """
-    url = 'https://emojipedia.org/%s/' % shortname.replace(' ', '-').lower()
+    url = 'https://emojipedia.org/%s/' % re.sub(r'[^a-z0-9 ]', '', shortname.lower()).replace(' ', '-')
     response = requests.get(url, stream=True)
     response.raw.decode_content = True
     html = lxml.html.parse(response.raw) if response.ok else None
