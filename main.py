@@ -50,28 +50,35 @@ class KeywordQueryEventListener(EventListener):
             search_term = ''.join([search_term, '%'])
         elif search_term:
             search_term = ''.join(['%', search_term, '%'])
-
-        where_clause = 'shortcode LIKE ?' if search_with_shortcodes else 'name_search LIKE ?'
-        join_clause = '''
-              LEFT JOIN skin_tone AS skt 
-                ON skt.name = em.name AND tone = ?
-              LEFT JOIN shortcode AS sc 
-                ON sc.name = em.name
-              ''' if search_with_shortcodes else '''
-              LEFT JOIN skin_tone AS skt 
-                ON skt.name = em.name AND tone = ?
-              '''
-        select_extension = ', sc.code as shortcode' if search_with_shortcodes else ''
-        query = '''
-            SELECT em.name, em.code, em.keywords,
-                   em.icon_apple, em.icon_twemoji, em.icon_noto, em.icon_blobmoji,
-                   skt.icon_apple AS skt_icon_apple, skt.icon_twemoji AS skt_icon_twemoji,
-                   skt.icon_noto AS skt_icon_noto, skt.icon_blobmoji AS skt_icon_blobmoji,
-                   skt.code AS skt_code''' + select_extension + '''
-            FROM emoji AS em ''' + join_clause + '''
-            WHERE ''' + where_clause + '''
-            LIMIT 8
-            '''
+        if search_with_shortcodes:
+            query = '''
+                SELECT em.name, em.code, em.keywords,
+                       em.icon_apple, em.icon_twemoji, em.icon_noto, em.icon_blobmoji,
+                       skt.icon_apple AS skt_icon_apple, skt.icon_twemoji AS skt_icon_twemoji,
+                       skt.icon_noto AS skt_icon_noto, skt.icon_blobmoji AS skt_icon_blobmoji,
+                       skt.code AS skt_code, sc.code as "shortcode"
+                FROM emoji AS em
+                  LEFT JOIN skin_tone AS skt 
+                    ON skt.name = em.name AND tone = ?
+                  LEFT JOIN shortcode AS sc 
+                    ON sc.name = em.name
+                WHERE sc.code LIKE ?
+                ORDER BY length(replace(sc.code, trim('{st}', '%'), ''))
+                LIMIT 8
+                '''.format(st=search_term)
+        else:
+            query = '''
+                SELECT em.name, em.code, em.keywords,
+                       em.icon_apple, em.icon_twemoji, em.icon_noto, em.icon_blobmoji,
+                       skt.icon_apple AS skt_icon_apple, skt.icon_twemoji AS skt_icon_twemoji,
+                       skt.icon_noto AS skt_icon_noto, skt.icon_blobmoji AS skt_icon_blobmoji,
+                       skt.code AS skt_code
+                FROM emoji AS em
+                  LEFT JOIN skin_tone AS skt 
+                    ON skt.name = em.name AND tone = ?
+                WHERE em.name LIKE ?
+                LIMIT 8
+                '''
 
         # Display blank prompt if user hasn't typed anything
         if not search_term:
