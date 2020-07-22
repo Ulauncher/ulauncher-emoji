@@ -113,7 +113,8 @@ conn = setup_db()
 
 class EmojiSpider(scrapy.Spider):
     name = 'emojispider'
-    start_urls = ['http://unicode.org/emoji/charts/emoji-list.html']
+    start_urls = ['http://unicode.org/emoji/charts/emoji-list.html',
+                  'http://unicode.org/emoji/charts/full-emoji-modifiers.html']
     # start_urls = ['http://172.17.0.1:8000/list2.html']
 
     def parse(self, response):
