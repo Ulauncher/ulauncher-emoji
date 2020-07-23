@@ -43,8 +43,7 @@ class KeywordQueryEventListener(EventListener):
         icon_style = extension.preferences['emoji_style']
         fallback_icon_style = extension.preferences['fallback_emoji_style']
         search_term = event.get_argument().replace('%', '') if event.get_argument() else None
-        search_with_shortcodes = extension.preferences['search_with'] == 'shortcodes' \
-                or (search_term and search_term.startswith(':'))
+        search_with_shortcodes = search_term and search_term.startswith(':')
         # Add %'s to search term (since LIKE %?% doesn't work)
         if search_term and search_with_shortcodes:
             search_term = ''.join([search_term, '%'])
