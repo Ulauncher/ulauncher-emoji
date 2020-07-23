@@ -63,6 +63,7 @@ class KeywordQueryEventListener(EventListener):
                   LEFT JOIN shortcode AS sc 
                     ON sc.name = em.name
                 WHERE sc.code LIKE ?
+                GROUP BY em.name
                 ORDER BY length(replace(sc.code, trim('{st}', '%'), ''))
                 LIMIT 8
                 '''.format(st=search_term)
