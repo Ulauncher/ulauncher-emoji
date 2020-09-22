@@ -1,37 +1,37 @@
 {
-  "required_api_version": "^2.0.0",
-  "name": "Emoji",
-  "description": "Emoji extension",
-  "developer_name": "Aleksandr Gornostal",
-  "icon": "images/icon.png",
-  "preferences": [
-    {
-      "id": "emoji_kw",
-      "type": "keyword",
-      "name": "Emoji",
-      "default_value": "em"
-    },
-    {
-      "id": "skin_tone",
-      "type": "select",
-      "name": "Skin Tone",
-      "description": "Choose the skin tone for your emojis",
-      "default_value": "default",
-      "options": [
-        "default",
-        "light",
-        "medium-light",
-        "medium",
-        "medium-dark",
-        "dark"
-      ]
-    },
-    {
-      "id": "search_limit",
-      "type": "input",
-      "name": "Max number emojis to show",
-      "description": "Enter the maximum number of matching emojis to show, default is 8",
-      "default_value": 8
-    }
-  ]
+    "required_api_version": "^2.0.0",
+    "name": "Emoji",
+    "description": "Emoji extension",
+    "developer_name": "Aleksandr Gornostal",
+    "icon": "images/icon.png",
+    "preferences": [
+        {
+            "id": "emoji_kw",
+            "type": "keyword",
+            "name": "Emoji",
+            "default_value": "em"
+        },
+        {
+            "id": "skin_tone",
+            "type": "select",
+            "name": "Skin Tone",
+            "description": "Choose the skin tone for your emojis",
+            "default_value": "default",
+            "options": [
+                "default",
+                "light",
+                "medium-light",
+                "medium",
+                "medium-dark",
+                "dark"
+            ]
+        },
+        {
+            "id": "search_limit",
+            "type": "input",
+            "name": "Max number emojis to show",
+            "description": "Enter the maximum number of matching emojis to show, default is 8",
+            "default_value": 8
+        }
+    ]
 }
