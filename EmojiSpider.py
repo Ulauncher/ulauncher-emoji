@@ -2,12 +2,13 @@
 import os
 import re
 import scrapy
+import requests
 import sqlite3
 import shutil
 import base64
 
-
-ICONS_PATH = 'images/emoji'
+EMOJI_STYLES = ['apple', 'twemoji', 'noto', 'blobmoji']
+ICONS_PATH = lambda s: 'images/%s/emoji' % s
 DB_PATH = 'emoji.sqlite'
 
 
@@ -19,17 +20,20 @@ def rm_r(path):
 
 
 def cleanup():
-    rm_r(ICONS_PATH)
+    for style in EMOJI_STYLES: rm_r(ICONS_PATH(style))
     rm_r(DB_PATH)
-    os.makedirs(ICONS_PATH)
-
+    for style in EMOJI_STYLES: os.makedirs(ICONS_PATH(style))
 
 def setup_db():
     conn = sqlite3.connect('emoji.sqlite', check_same_thread=False)
     conn.executescript('''
         CREATE TABLE emoji (name VARCHAR PRIMARY KEY, code VARCHAR,
-                            icon VARCHAR, keywords VARCHAR, name_search VARCHAR);
-        CREATE TABLE skin_tone (name VARCHAR, code VARCHAR, icon VARCHAR, tone VARCHAR);
+                            icon_apple VARCHAR, icon_twemoji VARCHAR,
+                            icon_noto VARCHAR, icon_blobmoji VARCHAR,
+                            keywords VARCHAR, name_search VARCHAR);
+        CREATE TABLE skin_tone (name VARCHAR, code VARCHAR, tone VARCHAR,
+                                icon_apple VARCHAR, icon_twemoji VARCHAR,
+                                icon_noto VARCHAR, icon_blobmoji VARCHAR);
         CREATE INDEX name_idx ON skin_tone (name);''')
     conn.row_factory = sqlite3.Row
 
@@ -40,12 +44,39 @@ def str_to_unicode_emoji(s):
     """
     Converts 'U+FE0E' to u'\U0000FE0E'
     """
-    return re.sub(r'U\+([0-9a-fA-F]+)', lambda m: unichr(int(m.group(1), 16)), s).replace(' ', '')
+    return re.sub(r'U\+([0-9a-fA-F]+)', lambda m: chr(int(m.group(1), 16)), s).replace(' ', '')
 
+
+def codepoint_to_url(codepoint, style):
+    """
+    Given an emoji's codepoint (e.g. 'U+FE0E') and a non-apple emoji style, 
+    returns a url to to the png image of the emoji in that style. 
+
+    Only works for style = 'twemoji', 'noto', and 'blobmoji'.
+    """
+    base = codepoint.replace('U+', '').lower()
+    if style == 'twemoji':
+        # See discussion in commit 8115b76 for more information about
+        # why the base needs to be patched like this.
+        patched = re.sub(r'0*([1-9a-f][0-9a-f]*)', lambda m: m.group(1), 
+                base.replace(' ', '-').replace('fe0f-20e3', '20e3').replace('1f441-fe0f-200d-1f5e8-fe0f', '1f441-200d-1f5e8'))
+        response = requests.get('https://github.com/twitter/twemoji/raw/gh-pages/v/latest')
+        version = response.text if response.ok else None
+        if version:
+            return 'https://github.com/twitter/twemoji/raw/gh-pages/v/%s/72x72/%s.png' \
+                    % (version, patched)
+        else:
+            return 'https://github.com/twitter/twemoji/raw/master/assets/72x72/%s.png' \
+                    % patched
+    elif style == 'noto':
+        return 'https://github.com/googlefonts/noto-emoji/raw/master/png/128/emoji_u%s.png' \
+                % base.replace(' ', '_')
+    elif style == 'blobmoji':
+        return 'https://github.com/C1710/blobmoji/raw/master/png/128/emoji_u%s.png' \
+                % base.replace(' ', '_')
 
 cleanup()
 conn = setup_db()
-
 
 class EmojiSpider(scrapy.Spider):
     name = 'emojispider'
@@ -55,11 +86,11 @@ class EmojiSpider(scrapy.Spider):
     def parse(self, response):
         icon = 0
         for tr in response.xpath('//tr[.//td[@class="code"]]'):
-            code = str_to_unicode_emoji(tr.css('.code a::text').extract_first())
+            code = tr.css('.code a::text').extract_first()
+            encoded_code = str_to_unicode_emoji(code)
             name = ''.join(tr.xpath('(.//td[@class="name"])[1]//text()').extract())
             keywords = ''.join(tr.xpath('(.//td[@class="name"])[2]//text()').extract())
             keywords = ' '.join([kw.strip() for kw in keywords.split('|') if 'skin tone' not in kw])
-            icon_b64 = tr.css('.andr img').xpath('@src').extract_first().split('base64,')[1]
             name = name.replace(u'⊛', '').strip()
             icon_name = name.replace(':', '').replace(' ', '_')
             skin_tone = ''
@@ -70,24 +101,45 @@ class EmojiSpider(scrapy.Spider):
 
             record = {
                 'name': name,
-                'icon': '%s/%s.png' % (ICONS_PATH, icon_name.encode('ascii', 'ignore')),
-                'code': code,
+                'code': encoded_code,
                 'keywords': keywords,
                 'tone': skin_tone,
                 'name_search': ' '.join(set(
                     [kw.strip() for kw in ('%s %s' % (name, keywords)).split(' ')]
-                ))
+                )),
+                # Icons Styles 
+                **{ 'icon_%s' % style: '%s/%s.png' \
+                        % (ICONS_PATH(style), icon_name) \
+                        for style in EMOJI_STYLES \
+                }
             }
+            
+            supported_styles = []
+            for style in EMOJI_STYLES:
+                if style == 'apple':
+                    icon_data = tr.css('.andr img').xpath('@src').extract_first().split('base64,')[1]
+                    icon_data = base64.decodestring(icon_data.encode('utf-8'))
+                else:
+                    link = codepoint_to_url(code, style)
+                    resp = requests.get(link)
+                    icon_data = resp.content if resp.ok else None
+                    print('[%s] %s' % ('OK' if resp.ok else 'BAD', link))
 
-            with open(record['icon'], 'w') as f:
-                f.write(base64.decodestring(icon_b64))
+                if icon_data:
+                    with open(record['icon_%s' % style], 'wb') as f:
+                        f.write(icon_data)
+                    supported_styles += [style] 
 
+            supported_styles = ['icon_%s' % style for style in supported_styles]
             if skin_tone:
-                query = '''INSERT INTO skin_tone (icon, code, name, tone)
-                           VALUES (:icon, :code, :name, :tone)'''
+                query = '''INSERT INTO skin_tone (name, code, tone, ''' + ', '.join(supported_styles) + ''')
+                           VALUES (:name, :code, :tone, ''' + ', '.join([':%s' % s for s in supported_styles]) + ''')'''
             else:
-                query = '''INSERT INTO emoji (icon, code, name, keywords, name_search)
-                           VALUES (:icon, :code, :name, :keywords, :name_search)'''
+                query = '''INSERT INTO emoji (name, code, ''' + ', '.join(supported_styles) + ''', 
+                                              keywords, name_search)
+                           VALUES (:name, :code, ''' + ', '.join([':%s' % s for s in supported_styles]) + ''',
+                                   :keywords, :name_search)'''
+            
             conn.execute(query, record)
 
             yield record
