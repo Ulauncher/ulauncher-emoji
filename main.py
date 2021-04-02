@@ -100,8 +100,9 @@ class KeywordQueryEventListener(EventListener):
                 WHERE sc.code LIKE ?
                 GROUP BY em.name
                 ORDER BY length(replace(sc.code, ?, ''))
+                LIMIT ?
                 '''
-            sql_args = [skin_tone, search_term, search_term_orig]
+            sql_args = [skin_tone, search_term, search_term_orig, search_limit]
         else:
             query = '''
                 SELECT em.name, em.code, em.keywords,
@@ -113,10 +114,9 @@ class KeywordQueryEventListener(EventListener):
                   LEFT JOIN skin_tone AS skt
                     ON skt.name = em.name AND tone = ?
                 WHERE em.name LIKE ?
+                LIMIT ?
                 '''
-            sql_args = [skin_tone, search_term]
-
-        query += f' LIMIT {search_limit}'
+            sql_args = [skin_tone, search_term, search_limit]
 
         # Display blank prompt if user hasn't typed anything
         if not search_term:
