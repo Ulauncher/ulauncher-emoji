@@ -62,6 +62,13 @@
                 "👌🏾 medium-dark",
                 "👌🏿 dark"
             ]
+        },
+        {
+            "id": "search_limit",
+            "type": "input",
+            "name": "Max number emojis to show",
+            "description": "Enter the maximum number of matching emojis to show, default is 8",
+            "default_value": 8
         }
     ]
 }
