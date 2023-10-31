@@ -100,23 +100,29 @@ class KeywordQueryEventListener(EventListener):
                 WHERE sc.code LIKE ?
                 GROUP BY em.name
                 ORDER BY length(replace(sc.code, ?, ''))
-                LIMIT ?
+                LIMIT ?;
                 '''
             sql_args = [skin_tone, search_term, search_term_orig, search_limit]
         else:
             query = '''
-                SELECT em.name, em.code, em.keywords,
-                       em.icon_apple, em.icon_twemoji, em.icon_noto, em.icon_blobmoji,
-                       skt.icon_apple AS skt_icon_apple, skt.icon_twemoji AS skt_icon_twemoji,
-                       skt.icon_noto AS skt_icon_noto, skt.icon_blobmoji AS skt_icon_blobmoji,
-                       skt.code AS skt_code
+                SELECT em.name, em.code,
+                    em.icon_apple, em.icon_twemoji, em.icon_noto, em.icon_blobmoji,
+                    skt.icon_apple AS skt_icon_apple, skt.icon_twemoji AS skt_icon_twemoji,
+                    skt.icon_noto AS skt_icon_noto, skt.icon_blobmoji AS skt_icon_blobmoji,
+                    skt.code AS skt_code
                 FROM emoji AS em
-                  LEFT JOIN skin_tone AS skt
+                LEFT JOIN skin_tone AS skt
                     ON skt.name = em.name AND tone = ?
                 WHERE em.name LIKE ?
-                LIMIT ?
+                    OR em.name_search LIKE ?
+                ORDER BY
+                    CASE
+                        WHEN em.name LIKE ? THEN 0
+                        WHEN em.name_search LIKE ? THEN 1
+                    END
+                LIMIT ?;
                 '''
-            sql_args = [skin_tone, search_term, search_limit]
+            sql_args = [skin_tone, search_term, search_term, search_term, search_term, search_limit]
 
         # Display blank prompt if user hasn't typed anything
         if not search_term:
