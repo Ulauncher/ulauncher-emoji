@@ -2,3 +2,6 @@
 __pycache__
 .cache
 .mypy_cache/
+emoji-list.html
+.venv
+noto-emoji

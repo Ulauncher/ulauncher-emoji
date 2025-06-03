@@ -1,7 +1,6 @@
 import os
 import logging
 import sqlite3
-from pprint import pprint
 from ulauncher.api.client.Extension import Extension
 from ulauncher.api.client.EventListener import EventListener
 from ulauncher.api.shared.event import KeywordQueryEvent
@@ -68,8 +67,8 @@ class KeywordQueryEventListener(EventListener):
         except Exception as e:
             search_limit = SEARCH_LIMIT_DEFAULT
 
-        icon_style = extension.preferences['emoji_style']
-        fallback_icon_style = extension.preferences['fallback_emoji_style']
+        icon_style = 'noto'
+        fallback_icon_style = 'apple'
         search_term = event.get_argument().replace(
             '%', '') if event.get_argument() else None
         search_with_shortcodes = search_term and search_term.startswith(':')
@@ -88,9 +87,9 @@ class KeywordQueryEventListener(EventListener):
         if search_with_shortcodes:
             query = '''
                 SELECT em.name, em.code, em.keywords,
-                       em.icon_apple, em.icon_twemoji, em.icon_noto, em.icon_blobmoji,
-                       skt.icon_apple AS skt_icon_apple, skt.icon_twemoji AS skt_icon_twemoji,
-                       skt.icon_noto AS skt_icon_noto, skt.icon_blobmoji AS skt_icon_blobmoji,
+                       em.icon_apple, em.icon_noto,
+                       skt.icon_apple AS skt_icon_apple,
+                       skt.icon_noto AS skt_icon_noto,
                        skt.code AS skt_code, sc.code as "shortcode"
                 FROM emoji AS em
                   LEFT JOIN skin_tone AS skt
@@ -106,9 +105,9 @@ class KeywordQueryEventListener(EventListener):
         else:
             query = '''
                 SELECT em.name, em.code,
-                    em.icon_apple, em.icon_twemoji, em.icon_noto, em.icon_blobmoji,
-                    skt.icon_apple AS skt_icon_apple, skt.icon_twemoji AS skt_icon_twemoji,
-                    skt.icon_noto AS skt_icon_noto, skt.icon_blobmoji AS skt_icon_blobmoji,
+                    em.icon_apple, em.icon_noto,
+                    skt.icon_apple AS skt_icon_apple,
+                    skt.icon_noto AS skt_icon_noto,
                     skt.code AS skt_code
                 FROM emoji AS em
                 LEFT JOIN skin_tone AS skt

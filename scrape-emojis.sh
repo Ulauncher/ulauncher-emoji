@@ -2,13 +2,8 @@
 
 set -ex
 
-docker build -t emoji-scraper .
+wget https://unicode.org/emoji/charts/emoji-list.html
 
-docker run \
-    --rm \
-    -it \
-    -v $(pwd):/root/scraper \
-    -v $HOME/.bash_history:/root/.bash_history \
-    --name emoji-scraper \
-    emoji-scraper \
-    bash -c "scrapy runspider EmojiSpider.py"
+git clone --depth 1 git@github.com:googlefonts/noto-emoji.git
+
+scrapy runspider EmojiSpider.py

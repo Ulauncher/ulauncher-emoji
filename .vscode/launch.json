@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Scrapy: Run EmojiSpider",
+      "type": "debugpy",
+      "request": "launch",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "SCRAPY_SETTINGS_MODULE": ""
+      },
+      "module": "scrapy",
+      "cwd": "${workspaceFolder}",
+      "args": ["runspider", "EmojiSpider.py"]
+    }
+  ]
+}

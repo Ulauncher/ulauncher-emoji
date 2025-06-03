@@ -12,32 +12,6 @@
             "default_value": "em"
         },
         {
-            "id": "emoji_style",
-            "type": "select",
-            "name": "Emoji Style",
-            "description": "Choose the style of emojis you prefer",
-            "default_value":"twemoji",
-            "options": [
-                "apple",
-                "twemoji",
-                "noto",
-                "blobmoji"
-            ]
-        },
-        {
-            "id": "fallback_emoji_style",
-            "type": "select",
-            "name": "Fallback Emoji Style",
-            "description": "Choose the style of emojis you prefer, if your first pick isn't available",
-            "default_value":"noto",
-            "options": [
-                "apple",
-                "twemoji",
-                "noto",
-                "blobmoji"
-            ]
-        },
-        {
             "id": "display_char",
             "type": "select",
             "name": "Display System Emoji",
