@@ -10,8 +10,8 @@ from ulauncher.api.shared.action.CopyToClipboardAction import CopyToClipboardAct
 from ulauncher.api.shared.action.DoNothingAction import DoNothingAction
 
 logger = logging.getLogger(__name__)
-extension_icon = 'images/icon.png'
-db_path = os.path.join(os.path.dirname(__file__), 'emoji.sqlite')
+extension_icon = "images/icon.png"
+db_path = os.path.join(os.path.dirname(__file__), "emoji.sqlite")
 conn = sqlite3.connect(db_path, check_same_thread=False)
 conn.row_factory = sqlite3.Row
 
@@ -26,17 +26,17 @@ def normalize_skin_tone(tone):
     machine-readable format.
     """
     if tone == "👌 default":
-        return ''
+        return ""
     elif tone == "👌🏻 light":
-        return 'light'
+        return "light"
     elif tone == "👌🏼 medium-light":
-        return 'medium-light'
+        return "medium-light"
     elif tone == "👌🏽 medium":
-        return 'medium'
+        return "medium"
     elif tone == "👌🏾 medium-dark":
-        return 'medium-dark'
+        return "medium-dark"
     elif tone == "👌🏿 dark":
-        return 'dark'
+        return "dark"
     else:
         return None
 
@@ -47,14 +47,20 @@ class EmojiExtension(Extension):
         super(EmojiExtension, self).__init__()
         self.subscribe(KeywordQueryEvent, KeywordQueryEventListener())
 
-        self.allowed_skin_tones = ["", "dark", "light",
-                                   "medium", "medium-dark", "medium-light"]
+        self.allowed_skin_tones = [
+            "",
+            "dark",
+            "light",
+            "medium",
+            "medium-dark",
+            "medium-light",
+        ]
 
 
 class KeywordQueryEventListener(EventListener):
 
     def on_event(self, event, extension):
-        search_limit = extension.preferences['search_limit']
+        search_limit = extension.preferences["search_limit"]
 
         try:
             search_limit = search_limit.strip()
@@ -67,25 +73,26 @@ class KeywordQueryEventListener(EventListener):
         except Exception as e:
             search_limit = SEARCH_LIMIT_DEFAULT
 
-        icon_style = 'noto'
-        fallback_icon_style = 'apple'
-        search_term = event.get_argument().replace(
-            '%', '') if event.get_argument() else None
-        search_with_shortcodes = search_term and search_term.startswith(':')
+        icon_style = "noto"
+        fallback_icon_style = "apple"
+        search_term = (
+            event.get_argument().replace("%", "") if event.get_argument() else None
+        )
+        search_with_shortcodes = search_term and search_term.startswith(":")
         # Add %'s to search term (since LIKE %?% doesn't work)
 
-        skin_tone = normalize_skin_tone(extension.preferences['skin_tone'])
+        skin_tone = normalize_skin_tone(extension.preferences["skin_tone"])
         if skin_tone not in extension.allowed_skin_tones:
             logger.warning('Unknown skin tone "%s"' % skin_tone)
-            skin_tone = ''
+            skin_tone = ""
 
         search_term_orig = search_term
         if search_term and search_with_shortcodes:
-            search_term = ''.join([search_term, '%'])
+            search_term = "".join([search_term, "%"])
         elif search_term:
-            search_term = ''.join(['%', search_term, '%'])
+            search_term = "".join(["%", search_term, "%"])
         if search_with_shortcodes:
-            query = '''
+            query = """
                 SELECT em.name, em.code, em.keywords,
                        em.icon_apple, em.icon_noto,
                        skt.icon_apple AS skt_icon_apple,
@@ -100,10 +107,10 @@ class KeywordQueryEventListener(EventListener):
                 GROUP BY em.name
                 ORDER BY length(replace(sc.code, ?, ''))
                 LIMIT ?;
-                '''
+                """
             sql_args = [skin_tone, search_term, search_term_orig, search_limit]
         else:
-            query = '''
+            query = """
                 SELECT em.name, em.code,
                     em.icon_apple, em.icon_noto,
                     skt.icon_apple AS skt_icon_apple,
@@ -120,42 +127,56 @@ class KeywordQueryEventListener(EventListener):
                         WHEN em.name_search LIKE ? THEN 1
                     END
                 LIMIT ?;
-                '''
-            sql_args = [skin_tone, search_term, search_term, search_term, search_term, search_limit]
+                """
+            sql_args = [
+                skin_tone,
+                search_term,
+                search_term,
+                search_term,
+                search_term,
+                search_limit,
+            ]
 
         # Display blank prompt if user hasn't typed anything
         if not search_term:
-            search_icon = 'images/%s/icon.png' % icon_style
-            return RenderResultListAction([
-                ExtensionResultItem(icon=search_icon,
-                                    name='Type in emoji name...',
-                                    on_enter=DoNothingAction())
-            ])
+            search_icon = "images/%s/icon.png" % icon_style
+            return RenderResultListAction(
+                [
+                    ExtensionResultItem(
+                        icon=search_icon,
+                        name="Type in emoji name...",
+                        on_enter=DoNothingAction(),
+                    )
+                ]
+            )
 
         # Get list of results from sqlite DB
         items = []
-        display_char = extension.preferences['display_char'] != 'no'
+        display_char = extension.preferences["display_char"] != "no"
         for row in conn.execute(query, sql_args):
-            if row['skt_code']:
-                icon = row['skt_icon_%s' % icon_style]
-                icon = row['skt_icon_%s' %
-                           fallback_icon_style] if not icon else icon
-                code = row['skt_code']
+            if row["skt_code"]:
+                icon = row["skt_icon_%s" % icon_style]
+                icon = row["skt_icon_%s" % fallback_icon_style] if not icon else icon
+                code = row["skt_code"]
             else:
-                icon = row['icon_%s' % icon_style]
-                icon = row['icon_%s' %
-                           fallback_icon_style] if not icon else icon
-                code = row['code']
+                icon = row["icon_%s" % icon_style]
+                icon = row["icon_%s" % fallback_icon_style] if not icon else icon
+                code = row["code"]
 
-            name = row['shortcode'] if search_with_shortcodes else row['name'].capitalize()
+            name = (
+                row["shortcode"] if search_with_shortcodes else row["name"].capitalize()
+            )
             if display_char:
-                name += ' | %s' % code
+                name += " | %s" % code
 
-            items.append(ExtensionResultItem(icon=icon, name=name,
-                                             on_enter=CopyToClipboardAction(code)))
+            items.append(
+                ExtensionResultItem(
+                    icon=icon, name=name, on_enter=CopyToClipboardAction(code)
+                )
+            )
 
         return RenderResultListAction(items)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     EmojiExtension().run()
