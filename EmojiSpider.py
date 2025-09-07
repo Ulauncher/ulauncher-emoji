@@ -192,13 +192,6 @@ def codepoint_to_noto_path(codepoint):
 
 
 def code_to_shortcodes(emoji: str) -> list[str]:
-    """
-    Given an emoji's CLDR Shortname (e.g. 'grinning face with smiling eyes'), returns a list
-    of common shortcodes used for that emoji.
-
-    NOTE: These shortcodes will NOT have colons at the beginning and end, even if they normally
-          would.
-    """
     code = emoji_to_hex(emoji)
     shortcodes: set[str] = set()
     emojibase_preset_names = [
@@ -227,7 +220,7 @@ def code_to_shortcodes(emoji: str) -> list[str]:
                         f"Unexpected shortcode type for {code} in {preset}: {type(shortcode)}"
                     )
 
-    return list(shortcodes)
+    return [f":{sc}:" for sc in shortcodes]
 
 
 def emoji_to_hex(emoji):
