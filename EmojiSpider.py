@@ -1,14 +1,10 @@
 import os
 import re
 import scrapy
-import requests
 import sqlite3
 import shutil
 import base64
 import json
-import time
-import signal
-import sys
 from tqdm import tqdm
 
 EMOJI_STYLES = ["apple", "noto"]
@@ -20,7 +16,7 @@ USE_CACHE = os.getenv("USE_CACHE", "0") == "1"
 class EmojiSpider(scrapy.Spider):
     name = "emojispider"
     start_urls = [
-        "file://" + os.path.abspath("emoji-list.html"),
+        "file://" + os.path.abspath(".cache/emoji-list.html"),
     ]
 
     def parse(self, response):
@@ -28,7 +24,6 @@ class EmojiSpider(scrapy.Spider):
 
         # Wrap the loop with tqdm for progress bar
         for i in tqdm(range(len(emoji_nodes)), desc="Processing emojis", leave=True):
-            # Scrape Data from unicode.org
             tr = emoji_nodes[i]
             code = tr.css(".code a::text").extract_first()
             encoded_code = str_to_unicode_emoji(code)
@@ -44,10 +39,11 @@ class EmojiSpider(scrapy.Spider):
             if found:
                 skin_tone = found.group("skin_tone")
                 name = name.replace(": %s skin tone" % skin_tone, "")
-            shortcodes = name_to_shortcodes(name)
+            shortcodes = code_to_shortcodes(encoded_code)
 
             # Update progress bar description with current emoji
             tqdm.write(f"Fetching {i + 1}/{len(emoji_nodes)}: {encoded_code} {name}")
+            tqdm.write(f"#️⃣ Shortcodes: {', '.join(shortcodes) if shortcodes else '❌'}")
 
             record = {
                 "name": name,
@@ -68,8 +64,8 @@ class EmojiSpider(scrapy.Spider):
                 },
             }
 
-            # Download Icons for each emoji
-            tqdm.write("🖼  Downloading Icons...")
+            # Extract icons for each emoji
+            tqdm.write("🖼  Extracting Icons...")
             supported_styles = []
             for style in EMOJI_STYLES:
                 icon_data = None
@@ -87,7 +83,7 @@ class EmojiSpider(scrapy.Spider):
                         with open(file_path, "rb") as f:
                             icon_data = f.read()
 
-                tqdm.write(f"- {'✅' if icon_data else '❎'}: {style}")
+                tqdm.write(f"- {'✅' if icon_data else '❌'}: {style}")
 
                 if icon_data:
                     with open(record["icon_%s" % style], "wb") as f:
@@ -195,7 +191,7 @@ def codepoint_to_noto_path(codepoint):
     return f"noto-emoji/png/128/emoji_u{base}.png"
 
 
-def name_to_shortcodes(shortname, remaining_retries=3):
+def code_to_shortcodes(emoji: str) -> list[str]:
     """
     Given an emoji's CLDR Shortname (e.g. 'grinning face with smiling eyes'), returns a list
     of common shortcodes used for that emoji.
@@ -203,73 +199,43 @@ def name_to_shortcodes(shortname, remaining_retries=3):
     NOTE: These shortcodes will NOT have colons at the beginning and end, even if they normally
           would.
     """
-    # Create cache directory
-    cache_dir = ".cache/emojipedia"
-    os.makedirs(cache_dir, exist_ok=True)
+    code = emoji_to_hex(emoji)
+    shortcodes: set[str] = set()
+    emojibase_preset_names = [
+        "cldr-native",
+        "joypixels",
+        "emojibase",
+        "iamcal",
+        "github",
+        "cldr",
+    ]
+    for preset in emojibase_preset_names:
+        path = f"emojibase/packages/data/en/shortcodes/{preset}.raw.json"
+        if not os.path.exists(path):
+            continue
+        with open(path, "r") as f:
+            data = json.load(f)
+            shortcode = data.get(code)
+            if shortcode is not None:
+                if isinstance(shortcode, str):
+                    shortcodes.add(data[code])
+                elif isinstance(shortcode, list):
+                    for sc in shortcode:
+                        shortcodes.add(sc)
+                else:
+                    raise ValueError(
+                        f"Unexpected shortcode type for {code} in {preset}: {type(shortcode)}"
+                    )
 
-    cache_file = os.path.join(cache_dir, f"{shortname}.json")
+    return list(shortcodes)
 
-    # Check cache first
-    if os.path.exists(cache_file) and USE_CACHE:
-        with open(cache_file, "r") as f:
-            cached_result = json.load(f)
-            return cached_result
 
-    url = "https://emojipedia.org/%s" % re.sub(
-        r"[^a-z0-9 ]", "", shortname.lower()
-    ).replace(" ", "-")
-
-    response = requests.get(url, stream=True)
-
-    if response.status_code == 429:
-        if remaining_retries > 0:
-            tqdm.write(
-                f"⏳ Rate limited (HTTP 429) for '{shortname}'. Waiting 60 seconds before retry. Retries left: {remaining_retries}"
-            )
-            time.sleep(60)
-            return name_to_shortcodes(shortname, remaining_retries - 1)
-        else:
-            raise ValueError(
-                f"Could not fetch shortcodes for '{shortname}': Rate limited after all retries"
-            )
-
-    if response.ok:
-        # Read response in chunks until we find shortcodes
-        content = ""
-        for chunk in response.iter_content(chunk_size=1024, decode_unicode=True):
-            content += chunk
-            if r'"shortcodes\":[' in content:
-                break
-
-        # with open("/tmp/content.html", "w") as f:
-        #     f.write(content)
-
-        found = re.search(r'"shortcodes\\":\[(.*?)\]', content)
-        shortcodes_json = ("[" + found.group(1) + "]" if found else "[]").replace(
-            '\\"', '"'
-        )
-        # will have a shape like this:
-        # [
-        #     {
-        #         "code": ":grinning_face:",
-        #         "vendor": { "slug": "shortcodes", "title": "Emojipedia" },
-        #         "source": "cldr"
-        #     },
-        #     ...
-        # ]
-        emojipedia_shortcodes = json.loads(shortcodes_json)
-        result = list(
-            set([entry["code"].strip(":") for entry in emojipedia_shortcodes])
-        )
-
-        # Cache the result
-        with open(cache_file, "w") as f:
-            json.dump(result, f)
-
-        return result
-
-    http_error = f"Error HTTP {response.status_code} while fetching {url}"
-    raise ValueError(f"Could not fetch shortcodes for '{shortname}': {http_error}")
+def emoji_to_hex(emoji):
+    """Convert emoji to hex code points"""
+    code_points = []
+    for char in emoji:
+        code_points.append(f"{ord(char):X}")
+    return "-".join(code_points).upper()
 
 
 cleanup()

@@ -35,5 +35,5 @@ Run the script to update emoji data
 
 ## Credits
 
-- [emojipedia.org](https://emojipedia.org/) for emoji shortcode data
+- [emojibase.dev](https://emojibase.dev/) for emoji shortcode data :heart:
 - [noto-emoji](https://github.com/googlefonts/noto-emoji) for emoji styles :heart:.
