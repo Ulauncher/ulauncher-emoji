@@ -17,6 +17,7 @@ class EmojiSpider(scrapy.Spider):
     name = "emojispider"
     start_urls = [
         "file://" + os.path.abspath(".cache/emoji-list.html"),
+        "file://" + os.path.abspath(".cache/full-emoji-modifiers.html"),
     ]
 
     def parse(self, response):
@@ -94,7 +95,7 @@ class EmojiSpider(scrapy.Spider):
             supported_styles = ["icon_%s" % style for style in supported_styles]
             if skin_tone:
                 query = (
-                    """INSERT INTO skin_tone (name, code, tone, """
+                    """INSERT OR IGNORE INTO skin_tone (name, code, tone, """
                     + ", ".join(supported_styles)
                     + """)
                             VALUES (:name, :code, :tone, """
@@ -103,7 +104,7 @@ class EmojiSpider(scrapy.Spider):
                 )
             else:
                 query = (
-                    """INSERT INTO emoji (name, code, """
+                    """INSERT OR IGNORE INTO emoji (name, code, """
                     + ", ".join(supported_styles)
                     + """,
                                                 keywords, name_search)
@@ -117,7 +118,7 @@ class EmojiSpider(scrapy.Spider):
             conn.execute(query, record)
             for sc in shortcodes:
                 squery = (
-                    """INSERT INTO shortcode (name, code)
+                    """INSERT OR IGNORE INTO shortcode (name, code)
                             VALUES (:name, "%s")"""
                     % sc
                 )
@@ -166,6 +167,8 @@ def setup_db():
             code VARCHAR
         );
         CREATE INDEX name_idx ON skin_tone (name);
+        CREATE UNIQUE INDEX tone_name_tone_code_idx ON skin_tone (name, tone, code);
+        CREATE UNIQUE INDEX shortcode_code_idx ON shortcode (code, name);
         """
     )
     conn.row_factory = sqlite3.Row

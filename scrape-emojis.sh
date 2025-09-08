@@ -11,7 +11,20 @@ if [ ! -f "$emojilist_file" ] || [ "$USE_CACHE" != "1" ]; then
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "Downloading $emojilist_file. May take a while..."
-        wget https://unicode.org/emoji/charts/$emojilist_file -O $emojilist_file
+        wget https://unicode.org/emoji/charts/emoji-list.html -O $emojilist_file
+    else
+        echo "Skipping download $emojilist_file. Using existing file."
+    fi
+fi
+
+emojilist_file=.cache/full-emoji-modifiers.html
+if [ ! -f "$emojilist_file" ] || [ "$USE_CACHE" != "1" ]; then
+    echo "$emojilist_file not found or cache disabled."
+    read -p "Do you want to re-download $emojilist_file from unicode.org? This may take a while. (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "Downloading $emojilist_file. May take a while..."
+        wget https://unicode.org/emoji/charts/full-emoji-modifiers.html -O $emojilist_file
     else
         echo "Skipping download $emojilist_file. Using existing file."
     fi
