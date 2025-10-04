@@ -203,7 +203,7 @@ def search(event, extension, search_term=None, offset=0):
                 ExtensionResultItem(
                     icon="images/more.png",
                     name="View more",
-                    description=f"You are viewing results from {offset + 1} to {offset + i}. Click for more",
+                    description=f"You are viewing results from {offset + 1} to {offset + displayed}. Click for more",
                     on_enter=ExtensionCustomAction(
                         data={"offset": i, "search_term": search_term},
                         keep_app_open=True,
