@@ -37,3 +37,7 @@ Run the script to update emoji data
 
 - [emojibase.dev](https://emojibase.dev/) for emoji shortcode data :heart:
 - [noto-emoji](https://github.com/googlefonts/noto-emoji) for emoji styles :heart:.
+
+## License
+
+Distributed under the Apache License 2.0. See `LICENSE` for details.
