@@ -28,6 +28,8 @@ Run the script to update emoji data
 - Supports Apple and Noto emoji preview renders
 - Search by emoji name, *or* by shortcode by beginning the search with `:`
 - Support for multiple skin tones via settings
+- Remembers recently used emoji and shows them when the search box is empty; list length is configurable in settings
+- `Alt+Enter` on any result pages forward, same as clicking "View more"
 
 ### Settings
 
