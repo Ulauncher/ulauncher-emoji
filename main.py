@@ -15,7 +15,8 @@ from ulauncher.api.shared.action.ActionList import ActionList
 logger = logging.getLogger(__name__)
 extension_icon = "images/icon.png"
 db_path = os.path.join(os.path.dirname(__file__), "emoji.sqlite")
-recent_path = os.path.join(os.path.dirname(__file__), "recent.json")
+_xdg_data_home = os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
+recent_path = os.path.join(_xdg_data_home, "ulauncher", "ulauncher-emoji", "recent.json")
 conn = sqlite3.connect(db_path, check_same_thread=False)
 conn.row_factory = sqlite3.Row
 
@@ -61,6 +62,7 @@ def record_recent(name):
     names.insert(0, name)
     names = names[:RECENT_STORE_MAX]
     try:
+        os.makedirs(os.path.dirname(recent_path), exist_ok=True)
         with open(recent_path, "w", encoding="utf-8") as f:
             json.dump(names, f)
     except Exception as e:
@@ -222,10 +224,11 @@ def search(event, extension, search_term=None, offset=0):
         ]
 
     # Get list of results from sqlite DB
+    rows = conn.execute(query, sql_args).fetchall()
     items = []
     i = 0
     displayed = 0
-    for row in conn.execute(query, sql_args):
+    for row in rows:
         i += 1
         if offset > 0 and i <= offset:
             continue
@@ -269,21 +272,22 @@ def search(event, extension, search_term=None, offset=0):
         if displayed >= search_limit:
             # Add "MORE" result item with a custom action, and let Alt+Enter
             # on any already-listed row page forward too (not just this one)
-            more_action = ExtensionCustomAction(
-                data={"action": "more", "search_term": search_term, "offset": i},
-                keep_app_open=True,
-            )
-            for item in items:
-                item._on_alt_enter = more_action
-            items.append(
-                ExtensionResultItem(
-                    icon="images/more.png",
-                    name="View more",
-                    description=f"You are viewing results from {offset + 1} to {offset + displayed}. Click for more",
-                    on_enter=more_action,
-                    on_alt_enter=more_action,
+            if i < len(rows):
+                more_action = ExtensionCustomAction(
+                    data={"action": "more", "search_term": search_term_orig, "offset": i},
+                    keep_app_open=True,
                 )
-            )
+                for item in items:
+                    item._on_alt_enter = more_action
+                items.append(
+                    ExtensionResultItem(
+                        icon="images/more.png",
+                        name="View more",
+                        description=f"You are viewing results from {offset + 1} to {offset + displayed}. Click for more",
+                        on_enter=more_action,
+                        on_alt_enter=more_action,
+                    )
+                )
             break
 
     return RenderResultListAction(items)
@@ -361,21 +365,26 @@ def render_recent(recent_limit, offset, icon_style, fallback_icon_style, skin_to
 
         displayed += 1
         if displayed >= recent_limit:
-            more_action = ExtensionCustomAction(
-                data={"action": "more", "mode": "recent", "offset": i},
-                keep_app_open=True,
+            has_more = any(
+                conn.execute("SELECT 1 FROM emoji WHERE name = ?", [n]).fetchone() is not None
+                for n in names[i:]
             )
-            for item in items:
-                item._on_alt_enter = more_action
-            items.append(
-                ExtensionResultItem(
-                    icon="images/more.png",
-                    name="View more",
-                    description=f"You are viewing results from {offset + 1} to {offset + displayed}. Click for more",
-                    on_enter=more_action,
-                    on_alt_enter=more_action,
+            if has_more:
+                more_action = ExtensionCustomAction(
+                    data={"action": "more", "mode": "recent", "offset": i},
+                    keep_app_open=True,
                 )
-            )
+                for item in items:
+                    item._on_alt_enter = more_action
+                items.append(
+                    ExtensionResultItem(
+                        icon="images/more.png",
+                        name="View more",
+                        description=f"You are viewing results from {offset + 1} to {offset + displayed}. Click for more",
+                        on_enter=more_action,
+                        on_alt_enter=more_action,
+                    )
+                )
             break
 
     if not items:
