@@ -23,6 +23,18 @@ Run the script to update emoji data
 ./scrape-emojis.sh
 ```
 
+## Tests
+
+```bash
+python3 -m venv --system-site-packages .venv
+source .venv/bin/activate
+pip install -r requirements-test.txt
+pytest
+```
+
+`--system-site-packages` is required because `main.py` imports PyGObject
+(`gi`/`Gtk`), which isn't pip-installable.
+
 ## Features
 
 - Supports Apple and Noto emoji preview renders
