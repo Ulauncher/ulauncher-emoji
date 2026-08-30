@@ -1,5 +1,6 @@
 *.pyc
 __pycache__
+recent.json
 .cache
 .mypy_cache/
 emoji-list.html
