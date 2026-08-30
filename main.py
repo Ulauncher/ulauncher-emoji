@@ -15,7 +15,8 @@ from ulauncher.api.shared.action.ActionList import ActionList
 logger = logging.getLogger(__name__)
 extension_icon = "images/icon.png"
 db_path = os.path.join(os.path.dirname(__file__), "emoji.sqlite")
-_xdg_data_home = os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
+_xdg = os.environ.get("XDG_DATA_HOME", "")
+_xdg_data_home = _xdg if os.path.isabs(_xdg) else os.path.expanduser("~/.local/share")
 recent_path = os.path.join(_xdg_data_home, "ulauncher", "ulauncher-emoji", "recent.json")
 conn = sqlite3.connect(db_path, check_same_thread=False)
 conn.row_factory = sqlite3.Row
